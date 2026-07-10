@@ -63,5 +63,5 @@ jobs:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
           WATCH_SECRET: ${{ secrets.WATCH_SECRET }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          SITE_URL: https://woodhouse-spa-helper.vercel.app
+          SITE_URL: https://woodhouseopenings.com
         run: node scripts/check-watches.js
