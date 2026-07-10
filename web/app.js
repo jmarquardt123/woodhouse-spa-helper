@@ -57,6 +57,8 @@
     locKey: store("wsh-loc") || null,
     who: "me", g1:"either", g2:"either",
     cat:null, fam:null, len:null,
+    days:[], t1:8*60, t2:21*60,
+    freshAt:{}, checking:false,
     ym:null,               // [year, monthIndex]
     selBy:{},              // iso(ym) month key -> day number
     time:null, timeRow:null, steps:{}, terms: store("wsh-terms")===true,
@@ -66,7 +68,7 @@
     locSearch:""
   };
   var saved = store("wsh-filters");
-  if(saved){ ["who","g1","g2","cat","fam","len"].forEach(function(k){ if(saved[k]!==undefined) S[k]=saved[k]; }); }
+  if(saved){ ["who","g1","g2","cat","fam","len","days","t1","t2"].forEach(function(k){ if(saved[k]!==undefined) S[k]=saved[k]; }); }
 
   /* ---------------- families over dataset ---------------- */
   function buildFams(){
@@ -124,8 +126,13 @@
   }
   function rowsFor(dateIso){
     var svc=curService(); if(!svc) return [];
+    if(S.days.length){
+      var w=new Date(Number(dateIso.slice(0,4)),Number(dateIso.slice(5,7))-1,Number(dateIso.slice(8,10))).getDay();
+      if(S.days.indexOf(w)<0) return [];
+    }
     var byDate=D.slots[svc.si]||{};
     var rows=(byDate[dateIso]||[]).filter(function(r){ return rowOk(r,fam().couples); });
+    rows=rows.filter(function(r){ return r[0]>=S.t1&&r[0]<=S.t2; });
     var t=todayIso();
     if(dateIso===t){ var nm=nowMin(); rows=rows.filter(function(r){ return r[0]>nm; }); }
     return rows;
@@ -170,16 +177,30 @@
     var g=S.who==="me"
       ? (S.g1==="either"?"Any therapist":"A "+S.g1)
       : ("You "+(S.g1==="either"?"either":"a "+S.g1)+" · Guest "+(S.g2==="either"?"either":"a "+S.g2));
-    return f.name+" · "+S.len+" min · "+g+" · "+who;
+    var extra="";
+    if(S.days.length){
+      var sd=S.days.slice().sort();
+      if(sd.length===2&&sd[0]===0&&sd[1]===6) extra+=" · Weekends";
+      else if(sd.length===1) extra+=" · "+DOWS[sd[0]]+"s";
+      else if(sd.length===2) extra+=" · "+DOWS[sd[0]]+"s and "+DOWS[sd[1]]+"s";
+      else extra+=" · "+sd.map(function(i){return DOWS[i].slice(0,3);}).join("/");
+    }
+    if(S.t1>8*60||S.t2<21*60) extra+=" · "+clock(S.t1)+"–"+clock(S.t2);
+    return f.name+" · "+S.len+" min · "+g+" · "+who+extra;
   }
 
   /* ---------------- freshness ---------------- */
   function freshInfo(){
+    var svc=curService();
+    var fa=svc&&S.freshAt[svc.si];
+    if(fa&&Date.now()-new Date(fa).getTime()<15*60000) return { hrs:0, stale:false, live:fa };
     var hrs=D&&D.scannedAt?(Date.now()-new Date(D.scannedAt).getTime())/3600000:Infinity;
     return { hrs:hrs, stale:hrs>9||!(D&&D.canary&&D.canary.ok) };
   }
   function freshPill(){
     var f=freshInfo();
+    if(S.checking) return '<span class="freshpill old" style="color:var(--soft);background:var(--card);border-color:var(--line)">Checking…</span>';
+    if(f.live) return '<span class="freshpill ok">Checked '+agoLabel(f.live)+'</span>';
     return '<span class="freshpill '+(f.stale?"old":"ok")+'">Checked '+agoLabel(D.scannedAt)+'</span>';
   }
   function staleBanner(){
@@ -188,7 +209,8 @@
     var why=(D.canary&&!D.canary.ok)
       ? "Our last check of this spa hit a problem, so some times may be off."
       : "These times were checked "+agoLabel(D.scannedAt)+".";
-    return '<div class="stale"><div><b>Times may be out of date.</b> <span>'+why+' The final word is always Woodhouse’s own site.</span></div></div>';
+    return '<div class="stale"><div><b>Times may be out of date.</b> <span>'+why+'</span>'+
+      '<div style="margin-top:9px"><button class="ghostbtn winey" style="padding:11px" data-act="rescan">'+(S.checking?"Checking Woodhouse…":"Refresh these times now")+'</button></div></div></div>';
   }
 
   /* ---------------- shared html ---------------- */
@@ -275,10 +297,13 @@
     }
     h+='</div>';
     h+= list.length ? (dayHead(list)+bandsHtml(list,false)) : emptyDay();
+    h+='<div class="sheetfoot"><button class="ghostbtn" data-act="rescan">'+(S.checking?"Checking Woodhouse…":"Check for new times")+'</button></div>';
     h+=footerHtml()+'</div>';
     // wide layout
     h+='<div class="webhome"><aside>'+brandHtml()+monthHeader(false)+monthGrid()+'</aside><main>'+choiceHtml()+staleBanner()+
-      (list.length?(dayHead(list)+bandsHtml(list,true)):emptyDay())+'</main>'+footerHtml()+'</div>';
+      (list.length?(dayHead(list)+bandsHtml(list,true)):emptyDay())+
+      '<div class="sheetfoot" style="margin-top:16px"><button class="ghostbtn" style="max-width:280px" data-act="rescan">'+(S.checking?"Checking Woodhouse…":"Check for new times")+'</button></div>'+
+      '</main>'+footerHtml()+'</div>';
     return h;
   };
 
@@ -321,6 +346,14 @@
         var p=f.lengths[l].price; var pr=p!=null?("$"+p*(f.couples?2:1)):"";
         return '<button class="opt'+(S.len===l?" on":"")+'" data-set="len:'+l+'">'+l+' min'+(pr?'<small class="num">'+pr+'</small>':"")+'</button>';
       }).join("")+'</div></div>';
+    h+='<div class="q"><div class="ql">Which days?</div><div class="daychips">'+
+      '<button class="dch'+(S.days.length===0?" on":"")+'" data-fday="any">Any</button>'+
+      DOWS.map(function(dn,i){ return '<button class="dch'+(S.days.indexOf(i)>=0?" on":"")+'" data-fday="'+i+'">'+dn.slice(0,3)+'</button>'; }).join("")+'</div></div>';
+    h+='<div class="q"><div class="ql">What time?</div>'+
+      '<div class="timelbl num" id="timeLbl">'+(S.t1<=8*60&&S.t2>=21*60?"Any time":clock(S.t1)+" – "+clock(S.t2))+'</div>'+
+      '<div class="range-dual"><div class="range-track"></div><div class="range-fill" id="timeFill"></div>'+
+      '<input type="range" id="t1" min="480" max="1260" step="30" value="'+S.t1+'" aria-label="Earliest time">'+
+      '<input type="range" id="t2" min="480" max="1260" step="30" value="'+S.t2+'" aria-label="Latest time"></div></div>';
     h+='<div class="applywrap"><button class="cta" data-act="apply">Show these times</button></div></div>';
     return h;
   };
@@ -442,7 +475,7 @@
     window.scrollTo(0,0);
   }
 
-  function saveFilters(){ store("wsh-filters",{who:S.who,g1:S.g1,g2:S.g2,cat:S.cat,fam:S.fam,len:S.len}); }
+  function saveFilters(){ store("wsh-filters",{who:S.who,g1:S.g1,g2:S.g2,cat:S.cat,fam:S.fam,len:S.len,days:S.days,t1:S.t1,t2:S.t2}); }
 
   function wire(){
     app.querySelectorAll("[data-go]").forEach(function(b){ b.addEventListener("click",function(e){ e.stopPropagation(); go(b.getAttribute("data-go")); }); });
@@ -463,6 +496,27 @@
       else S[k]=v;
       ensureSelection(); saveFilters(); render();
     }); });
+    app.querySelectorAll("[data-fday]").forEach(function(b){ b.addEventListener("click",function(){
+      var v=b.getAttribute("data-fday");
+      if(v==="any") S.days=[];
+      else { var i=Number(v), at=S.days.indexOf(i); if(at>=0) S.days.splice(at,1); else S.days.push(i); }
+      saveFilters(); render();
+    }); });
+    var t1=document.getElementById("t1"), t2=document.getElementById("t2");
+    function syncSlider(){
+      if(!t1) return;
+      var a=Number(t1.value), b2=Number(t2.value);
+      if(a>b2){ var tmp=a; a=b2; b2=tmp; }
+      S.t1=a; S.t2=b2;
+      var lo=(a-480)/(1260-480)*100, hi=(b2-480)/(1260-480)*100;
+      var fill=document.getElementById("timeFill");
+      if(fill){ fill.style.left=lo+"%"; fill.style.width=(hi-lo)+"%"; }
+      var lbl=document.getElementById("timeLbl");
+      if(lbl) lbl.textContent=(a<=480&&b2>=1260)?"Any time":clock(a)+" – "+clock(b2);
+    }
+    if(t1&&t2){ syncSlider();
+      [t1,t2].forEach(function(el){ el.addEventListener("input",syncSlider); el.addEventListener("change",function(){ saveFilters(); }); });
+    }
     var catSel=document.getElementById("catSel");
     if(catSel) catSel.addEventListener("change",function(){ S.cat=catSel.value; S.fam=null; ensureSelection(); saveFilters(); render(); });
     app.querySelectorAll("[data-copy]").forEach(function(b){ b.addEventListener("click",function(){
@@ -488,6 +542,7 @@
         S.profile={ name:(val("pfName")||"").slice(0,80), email:(val("pfEmail")||"").slice(0,120) };
         store("wsh-profile",S.profile); toast("Saved on this device"); go(S.time!=null?"card":"settings");
       }
+      if(a==="rescan"){ doRescan(); }
       if(a==="minimize"){
         var x=ym();
         S.strip=true;
@@ -528,6 +583,37 @@
   }
   function val(id){ var e=document.getElementById(id); return e?e.value.trim():""; }
 
+  function doRescan(){
+    var svc=curService(); if(!svc||S.checking) return;
+    S.checking=true; render();
+    fetch("/api/rescan",{ method:"POST", headers:{"content-type":"application/json"},
+      body: JSON.stringify({ key:S.locKey, serviceId:D.services[svc.si].id, couples:fam().couples, days:28 })
+    }).then(function(r){ return r.json(); }).then(function(res){
+      S.checking=false;
+      if(!res.ok){ toast(res.error||"Couldn’t check right now"); render(); return; }
+      // remap fresh provider indexes into this dataset's provider table
+      var map=res.providers.map(function(p){
+        for(var i=0;i<D.providers.length;i++) if(D.providers[i].n.toUpperCase()===p.n.toUpperCase()&&D.providers[i].g===p.g) return i;
+        D.providers.push({n:p.n,g:p.g}); return D.providers.length-1;
+      });
+      function remapWho(who,couples){
+        return couples ? who.map(function(pair){ return pair.map(function(i){ return map[i]; }); })
+                       : who.map(function(i){ return map[i]; });
+      }
+      var si=svc.si, cpl=fam().couples;
+      var t=new Date(), from=todayIso();
+      var toD=new Date(t.getTime()+res.days*86400000);
+      var to=toD.getFullYear()+"-"+String(toD.getMonth()+1).padStart(2,"0")+"-"+String(toD.getDate()).padStart(2,"0");
+      var slots=D.slots[si]||(D.slots[si]={});
+      Object.keys(slots).forEach(function(date){ if(date>=from&&date<=to&&!res.slots[date]) delete slots[date]; });
+      Object.keys(res.slots).forEach(function(date){
+        slots[date]=res.slots[date].map(function(r){ return [r[0],r[1],r[2],remapWho(r[3],cpl)]; });
+      });
+      S.freshAt[si]=res.scannedAt;
+      render(); toast("Checked just now · times updated");
+    }).catch(function(e){ S.checking=false; render(); toast("Couldn’t check right now"); });
+  }
+
   /* ---------------- data loading ---------------- */
   function fetchJson(u){ return fetch(u,{cache:"no-cache"}).then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }); }
   function loadError(msg){
@@ -538,7 +624,9 @@
     D=null; FAMS=null; S.ym=null; S.selBy={}; S.time=null; S.strip=false;
     app.innerHTML='<div class="boot"><div class="boot-pip"></div><p>Loading open times…</p></div>';
     fetchJson("/data/locations/"+encodeURIComponent(key)+".json").then(function(data){
-      D=data; buildFams(); ensureSelection(); go("home");
+      D=data; buildFams(); ensureSelection();
+      if(!store("wsh-filters")){ S.returnTo="home"; go("filters"); }
+      else go("home");
     }).catch(function(e){ loadError("This spa’s times aren’t available right now ("+e.message+")"); });
   }
 
