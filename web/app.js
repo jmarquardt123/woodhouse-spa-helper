@@ -159,9 +159,14 @@
   function sel(){
     var k=ymKey();
     if(S.selBy[k]==null){
-      var x=ym(), d=firstDay();
-      while(d<=daysInYm()&&!countFor(x[0],x[1],d)) d++;
-      S.selBy[k]=Math.min(d,daysInYm());
+      var x=ym(), d=firstDay(), firstMatch=null;
+      for(;d<=daysInYm();d++){
+        var okDay=!S.days.length||S.days.indexOf(dow(x[0],x[1],d))>=0;
+        if(!okDay) continue;
+        if(firstMatch==null) firstMatch=d;
+        if(countFor(x[0],x[1],d)) { firstMatch=d; break; }
+      }
+      S.selBy[k]=firstMatch!=null?firstMatch:daysInYm();
     }
     return S.selBy[k];
   }
@@ -224,7 +229,21 @@
   }
 
   /* ---------------- shared html ---------------- */
-  function go(v){ S.view=v; render(); }
+  function go(v){
+    if(v===S.view){ render(); return; }
+    S.view=v;
+    try{
+      if(v==="home") history.pushState({v:"home"},"","#");
+      else history.pushState({v:v},"","#"+v);
+    }catch(e){}
+    render();
+  }
+  window.addEventListener("popstate",function(e){
+    var st=e.state||{v:D?"home":"location"};
+    S.view=st.v||"home";
+    S.sheetOpen=!!st.sheet;
+    render();
+  });
   function subhead(title,sub,extra,noBack){
     return '<div class="subhead">'+(noBack?'':'<button class="back" data-go="home" aria-label="Back">‹<span class="backlbl">Back</span></button>')+'<span class="t"><span class="v">'+esc(title)+'</span>'+(sub?'<span class="s">'+esc(sub)+'</span>':'')+'</span><span class="right">'+(extra||"")+'</span></div>';
   }
@@ -257,9 +276,10 @@
     for(var i=0;i<first;i++) h+='<span></span>';
     for(var d=1;d<=daysInYm();d++){
       var past=isCur&&d<t.getDate();
-      var n=past?0:countFor(x[0],x[1],d);
+      var excluded=S.days.length&&S.days.indexOf(dow(x[0],x[1],d))<0;
+      var n=(past||excluded)?0:countFor(x[0],x[1],d);
       var dots=n===0?0:(n<5?1:(n<14?2:3));
-      h+='<button class="mday'+(n?"":" none")+'"'+(past?" disabled":"")+' data-pick="'+d+'">'+
+      h+='<button class="mday'+(n?"":" none")+'"'+((past||excluded)?" disabled":"")+' data-pick="'+d+'">'+
         (sel()===d?'<svg class="ring" viewBox="0 0 44 48" preserveAspectRatio="none"><ellipse cx="22" cy="24" rx="17" ry="17" transform="rotate(-4 22 24)"/></svg>':"")+
         d+'<span class="mark">'+("<i></i>").repeat(dots)+'</span></button>';
     }
@@ -269,6 +289,11 @@
   }
   function emptyDay(){
     var x=ym(), d=sel(), near=[];
+    if(S.days.length&&S.days.indexOf(dow(x[0],x[1],d))<0){
+      var dn2=S.days.slice().sort().map(function(i){return DOWS[i]+"s";}).join(" and ");
+      return '<div class="emptyday"><div class="serif">'+DOWS[dow(x[0],x[1],d)]+' isn’t in your days</div><p>You chose to see '+dn2+' only.</p>'+
+        '<div class="near"><button data-act="opensheet">Change days</button></div></div>';
+    }
     for(var a=d-1;a>=firstDay()&&near.length<1;a--) if(countFor(x[0],x[1],a)) near.push(a);
     for(var b=d+1;b<=daysInYm()&&near.length<2;b++) if(countFor(x[0],x[1],b)) near.push(b);
     near.sort(function(p,q){return p-q;});
@@ -302,6 +327,7 @@
     var h='<div class="pad homepad">'+brandHtml()+monthHeader(true)+staleBanner()+choiceHtml()+'<div class="ribbon">';
     var x=ym();
     for(var d=firstDay();d<=daysInYm();d++){
+      if(S.days.length&&S.days.indexOf(dow(x[0],x[1],d))<0) continue;
       var n=countFor(x[0],x[1],d);
       h+='<button class="dcard'+(sel()===d?" on":"")+(n?"":" none")+'" data-day="'+d+'"><span class="dw">'+DOWS[dow(x[0],x[1],d)].slice(0,3)+'</span><span class="dn">'+d+'</span><span class="dc">'+(n?plural(n,"time"):"·")+'</span></button>';
     }
@@ -375,7 +401,14 @@
     var f=fam(), row=S.timeRow, x=ym();
     var h='<div class="pad">'+subhead("Finish at Woodhouse",null,'<button data-act="minimize" title="Minimize" aria-label="Minimize">▾</button>');
     var fr=freshInfo();
-    h+='<div class="verify'+(fr.stale?" warn":"")+'"><span class="pip"></span><span class="vt"><b>From the last check</b> <span>· '+agoLabel(D.scannedAt)+'. Woodhouse’s site has the final word.</span></span></div>';
+    var vs=S.cardCheck;
+    var vclass="", vtext="", vbtn="Check now";
+    if(vs==="checking"){ vtext='<b>Checking Woodhouse…</b>'; vbtn="Checking…"; }
+    else if(vs==="open"){ vclass=" live"; vtext='<b>Still open</b> <span>· checked just now</span>'; vbtn="Re-check"; }
+    else if(vs==="gone"){ vclass=" warn"; vtext='<b>That time looks taken now</b> <span>· pick another below</span>'; vbtn="Re-check"; }
+    else { vclass=fr.stale?" warn":""; vtext='<b>From the last check</b> <span>· '+agoLabel(fr.basis||D.scannedAt)+'</span>'; }
+    h+='<div class="verify'+vclass+'"><span class="pip"></span><span class="vt">'+vtext+'</span>'+
+       '<button class="vcheck" data-act="cardcheck"'+(vs==="checking"?" disabled":"")+'>'+vbtn+'</button></div>';
     h+='<div class="svcname"><h2>'+esc(f.name)+'</h2><span class="pill num">'+S.len+' min</span></div>';
     h+='<div class="whenblock"><span class="wt">'+(S.time!=null?clock(S.time):"")+'</span><span class="wd">'+DOWS[dow(x[0],x[1],sel())]+', '+MONS[x[1]]+' '+sel()+'</span><span class="wp num">$'+slotPrice(row)+(f.couples?" for two":"")+'</span></div>';
     h+='<div class="addr">'+pin()+'<span>'+esc(D.label)+' · '+esc(D.address)+' · <a href="https://maps.apple.com/?q='+encodeURIComponent(D.address)+'" target="_blank" rel="noopener">directions</a></span></div>';
@@ -528,8 +561,10 @@
     app.innerHTML=html;
     if(S.strip&&S.view==="home"&&S.stripInfo){
       var si=S.stripInfo;
+      var still=true;
+      try{ still=!!(si.si!=null&&(D.slots[si.si]||{})[si.date]||[]).some(function(r){ return r[0]===si.t; }); }catch(e){}
       app.insertAdjacentHTML("beforeend",
-        '<button class="stripbtn" id="strip"><span class="sw"><span class="a">'+esc(si.when)+'</span><span class="b">'+esc(si.what)+'</span></span><span class="badge">Saved</span><span class="x" id="stripX">✕</span></button>');
+        '<button class="stripbtn" id="strip"><span class="sw"><span class="a">'+esc(si.when)+'</span><span class="b">'+esc(si.what)+'</span></span><span class="badge"'+(still?'':' style="background:rgba(0,0,0,.28)"')+'>'+(still?"Saved":"Gone?")+'</span><span class="x" id="stripX">✕</span></button>');
     }
     wire();
     window.scrollTo(0,0);
@@ -538,14 +573,20 @@
   function saveFilters(){ store("wsh-filters",{who:S.who,g1:S.g1,g2:S.g2,cat:S.cat,fam:S.fam,len:S.len,days:S.days,t1:S.t1,t2:S.t2}); }
 
   function wire(){
-    app.querySelectorAll("[data-go]").forEach(function(b){ b.addEventListener("click",function(e){ e.stopPropagation(); var v=b.getAttribute("data-go"); if(v==="alert") S.alertStage="form"; go(v); }); });
+    app.querySelectorAll("[data-go]").forEach(function(b){ b.addEventListener("click",function(e){
+      e.stopPropagation();
+      var v=b.getAttribute("data-go");
+      if(v==="alert") S.alertStage="form";
+      if(b.classList.contains("back")&&history.state&&history.state.v&&history.state.v!=="home"){ history.back(); return; }
+      go(v);
+    }); });
     app.querySelectorAll("[data-day]").forEach(function(b){ b.addEventListener("click",function(){ S.selBy[ymKey()]=Number(b.getAttribute("data-day")); render(); }); });
     app.querySelectorAll("[data-pick]").forEach(function(b){ b.addEventListener("click",function(){ S.selBy[ymKey()]=Number(b.getAttribute("data-pick")); go("home"); }); });
     app.querySelectorAll("[data-time]").forEach(function(b){ b.addEventListener("click",function(){
       var t=Number(b.getAttribute("data-time"));
       S.time=t;
       S.timeRow=rowsFor(iso(ym()[0],ym()[1],sel())).find(function(r){return r[0]===t;})||null;
-      S.steps={};
+      S.steps={}; S.cardCheck=null;
       go("card");
     }); });
     app.querySelectorAll("[data-set]").forEach(function(b){ b.addEventListener("click",function(){
@@ -601,14 +642,27 @@
       if(a==="monthview") go("month");
       if(a==="prevm"){ ymShift(-1); render(); }
       if(a==="nextm"){ ymShift(1); render(); }
-      if(a==="opensheet"){ S.sheetOpen=true; render(); }
-      if(a==="closesheet"){ S.sheetOpen=false; saveFilters(); render(); }
-      if(a==="apply"){ S.sheetOpen=false; saveFilters(); render(); toast("Showing "+sentence()); }
+      if(a==="opensheet"){ S.sheetOpen=true; S._filterSnap=JSON.stringify([S.who,S.g1,S.g2,S.fam,S.len,S.days,S.t1,S.t2]); try{ history.pushState({v:S.view,sheet:1},"","#plan"); }catch(e){} render(); }
+      if(a==="closesheet"){ S.sheetOpen=false; saveFilters(); if(S._filterSnap!==JSON.stringify([S.who,S.g1,S.g2,S.fam,S.len,S.days,S.t1,S.t2])) S.selBy={}; try{ if(history.state&&history.state.sheet){ history.replaceState({v:S.view},"","#"); } }catch(e){} render(); }
+      if(a==="apply"){ S.sheetOpen=false; saveFilters(); if(S._filterSnap!==JSON.stringify([S.who,S.g1,S.g2,S.fam,S.len,S.days,S.t1,S.t2])) S.selBy={}; try{ if(history.state&&history.state.sheet){ history.replaceState({v:S.view},"","#"); } }catch(e){} render(); toast("Showing "+sentence()); }
       if(a==="savepf"){
         S.profile={ name:(val("pfName")||"").slice(0,80), email:(val("pfEmail")||"").slice(0,120) };
         store("wsh-profile",S.profile); toast("Saved on this device"); go(S.time!=null?"card":"settings");
       }
       if(a==="rescan"){ doRescan(); }
+      if(a==="cardcheck"){
+        if(S.cardCheck==="checking") return;
+        S.cardCheck="checking"; render();
+        var x2=ym(), dIso=iso(x2[0],x2[1],sel());
+        rescanCore().then(function(res){
+          if(!res.ok){ S.cardCheck=null; render(); toast(res.error||"Couldn’t check right now"); return; }
+          var row=(rowsFor(dIso)||[]).find(function(r){ return r[0]===S.time; });
+          if(row) S.timeRow=row;
+          S.cardCheck=row?"open":"gone";
+          render();
+          toast(row?("Still open · "+clock(S.time)+" is free"):"That time was just taken");
+        }).catch(function(){ S.cardCheck=null; render(); toast("Couldn’t check right now"); });
+      }
       if(a==="alertsend"){
         var em=(val("alertEmail")||"").trim();
         if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)){ toast("That email doesn’t look right"); return; }
@@ -631,9 +685,11 @@
           .catch(function(){ S.myWatches=[]; if(S.view==="myalerts") render(); });
       }
       if(a==="minimize"){
-        var x=ym();
+        var x=ym(); var svc2=curService();
         S.strip=true;
-        S.stripInfo={ when:clock(S.time)+" · "+DOWS[dow(x[0],x[1],sel())].slice(0,3)+" "+MONS[x[1]].slice(0,3)+" "+sel(), what:fam().name+" · "+S.len+" min · $"+slotPrice(S.timeRow) };
+        S.stripInfo={ si:svc2?svc2.si:null, date:iso(x[0],x[1],sel()), t:S.time,
+          when:clock(S.time)+" · "+DOWS[dow(x[0],x[1],sel())].slice(0,3)+" "+MONS[x[1]].slice(0,3)+" "+sel(),
+          what:fam().name+" · "+S.len+" min · $"+slotPrice(S.timeRow) };
         go("home");
       }
     }); });
@@ -670,14 +726,12 @@
   }
   function val(id){ var e=document.getElementById(id); return e?e.value.trim():""; }
 
-  function doRescan(){
-    var svc=curService(); if(!svc||S.checking) return;
-    S.checking=true; render();
-    fetch("/api/rescan",{ method:"POST", headers:{"content-type":"application/json"},
+  function rescanCore(){
+    var svc=curService(); if(!svc) return Promise.resolve({ok:false,error:"no service"});
+    return fetch("/api/rescan",{ method:"POST", headers:{"content-type":"application/json"},
       body: JSON.stringify({ key:S.locKey, serviceId:D.services[svc.si].id, couples:fam().couples, days:28 })
     }).then(function(r){ return r.json(); }).then(function(res){
-      S.checking=false;
-      if(!res.ok){ toast(res.error||"Couldn’t check right now"); render(); return; }
+      if(!res.ok) return res;
       // remap fresh provider indexes into this dataset's provider table
       var map=res.providers.map(function(p){
         for(var i=0;i<D.providers.length;i++) if(D.providers[i].n.toUpperCase()===p.n.toUpperCase()&&D.providers[i].g===p.g) return i;
@@ -697,8 +751,17 @@
         slots[date]=res.slots[date].map(function(r){ return [r[0],r[1],r[2],remapWho(r[3],cpl)]; });
       });
       S.freshAt[si]=res.scannedAt;
+      return { ok:true };
+    });
+  }
+  function doRescan(){
+    if(S.checking) return;
+    S.checking=true; render();
+    rescanCore().then(function(res){
+      S.checking=false;
+      if(!res.ok){ toast(res.error||"Couldn’t check right now"); render(); return; }
       render(); toast("Checked just now · times updated");
-    }).catch(function(e){ S.checking=false; render(); toast("Couldn’t check right now"); });
+    }).catch(function(){ S.checking=false; render(); toast("Couldn’t check right now"); });
   }
 
   function overlayNear(near){
@@ -737,8 +800,9 @@
     app.innerHTML='<div class="boot"><div class="boot-pip"></div><p>Loading open times…</p></div>';
     fetchJson("/data/locations/"+encodeURIComponent(key)+".json").then(function(data){
       D=data; buildFams(); ensureSelection();
-      if(!store("wsh-filters")) S.sheetOpen=true;
-      go("home");
+      try{ history.replaceState({v:"home"},"","#"); }catch(e){}
+      if(!store("wsh-filters")){ S.sheetOpen=true; S._filterSnap="init"; try{ history.pushState({v:"home",sheet:1},"","#plan"); }catch(e){} }
+      S.view="home"; render();
       fetchJson("/data/locations/"+encodeURIComponent(key)+"-near.json")
         .then(function(near){ overlayNear(near); if(S.view==="home") render(); })
         .catch(function(){ /* near file not built yet — deep data stands */ });

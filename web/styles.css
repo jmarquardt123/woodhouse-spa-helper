@@ -340,3 +340,8 @@ input, select { font: inherit; }
 }
 
 .sheetsub { font-size:15px; color:var(--soft); margin:6px 2px 0; }
+
+/* card check button */
+.verify .vcheck { flex:none; font-size:13px; font-weight:650; color:var(--wine); background:transparent; border:1px solid color-mix(in srgb, var(--wine) 40%, transparent); border-radius:999px; padding:7px 13px; }
+.verify.live .vcheck { color:var(--live); border-color:color-mix(in srgb, var(--live) 40%, transparent); }
+.verify .vcheck:disabled { opacity:.6; }
