@@ -225,8 +225,8 @@
 
   /* ---------------- shared html ---------------- */
   function go(v){ S.view=v; render(); }
-  function subhead(title,sub,extra){
-    return '<div class="subhead"><button class="back" data-go="home" aria-label="Back">‹</button><span class="t"><span class="v">'+esc(title)+'</span>'+(sub?'<span class="s">'+esc(sub)+'</span>':'')+'</span><span class="right">'+(extra||"")+'</span></div>';
+  function subhead(title,sub,extra,noBack){
+    return '<div class="subhead">'+(noBack?'':'<button class="back" data-go="home" aria-label="Back">‹<span class="backlbl">Back</span></button>')+'<span class="t"><span class="v">'+esc(title)+'</span>'+(sub?'<span class="s">'+esc(sub)+'</span>':'')+'</span><span class="right">'+(extra||"")+'</span></div>';
   }
   function brandHtml(){
     return '<div class="brandrow"><span class="wm"><span class="house">WOODHOUSE SPA</span><span class="helper">Helper</span></span><button class="gear" data-go="settings" aria-label="Settings">'+icon("sliders",17)+'</button></div>'+
@@ -479,18 +479,29 @@
       '<button class="setrow" data-go="about"><span class="si">'+icon("info",16)+'</span><span class="sl"><b>About this helper</b><span>How it works · privacy</span></span><span class="ch">›</span></button></div>';
   };
 
+  var STATE_NAMES={AL:"Alabama",AR:"Arkansas",CA:"California",CO:"Colorado",FL:"Florida",GA:"Georgia",IN:"Indiana",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",MD:"Maryland",MI:"Michigan",MN:"Minnesota",MO:"Missouri",NC:"North Carolina",NJ:"New Jersey",NY:"New York",OH:"Ohio",PA:"Pennsylvania",SC:"South Carolina",TN:"Tennessee",TX:"Texas",UT:"Utah",VA:"Virginia",WI:"Wisconsin"};
   VIEWS.location=function(){
     var q=(S.locSearch||"").toLowerCase();
     var list=(IDX?IDX.locations:[]).filter(function(l){
-      return !q||(l.city+" "+l.state+" "+l.label).toLowerCase().includes(q);
+      return !q||(l.city+" "+l.state+" "+(STATE_NAMES[l.state]||"")+" "+l.label).toLowerCase().includes(q);
     });
-    var h='<div class="pad">'+subhead("Which Woodhouse do you go to?",null)+
+    var h='<div class="pad locpad">'+
+      (D?subhead("Which Woodhouse do you go to?",null)
+        :'<div class="brandrow" style="justify-content:center;text-align:center"><span class="wm"><span class="house">WOODHOUSE SPA</span><span class="helper">Helper</span></span></div>'+
+         '<p class="bigserif" style="text-align:center;margin-top:22px">Which Woodhouse do you go to?</p>'+
+         '<p class="lede" style="text-align:center">Real open appointment times, updated all day.</p>')+
       '<div class="search"><input placeholder="Search city or state" id="locSearch" value="'+esc(S.locSearch||"")+'"></div><div style="height:14px"></div>';
-    if(!list.length) h+='<p class="lede">No spas match that search.</p>';
-    list.forEach(function(l){
-      h+='<button class="locrow'+(l.key===S.locKey?" on":"")+'" data-loc="'+esc(l.key)+'"><span class="ln"><b>'+esc(l.city)+', '+esc(l.state)+'</b><span>'+esc(l.label)+(l.phone?' · '+esc(l.phone):"")+'</span></span><span class="mark">✓</span></button>';
+    if(!list.length) h+='<p class="lede" style="text-align:center">No spas match that search.</p>';
+    var byState={};
+    list.forEach(function(l){ (byState[l.state]=byState[l.state]||[]).push(l); });
+    Object.keys(byState).sort().forEach(function(st){
+      h+='<div class="statehdr">'+esc(STATE_NAMES[st]||st)+'</div><div class="locgrid">';
+      byState[st].forEach(function(l){
+        h+='<button class="locrow'+(l.key===S.locKey?" on":"")+'" data-loc="'+esc(l.key)+'"><span class="ln"><b>'+esc(l.city)+'</b><span>'+esc(l.label)+(l.phone?' · '+esc(l.phone):"")+'</span></span><span class="mark">✓</span></button>';
+      });
+      h+='</div>';
     });
-    h+='<p class="finehint">'+plural((IDX?IDX.locations.length:0),"Woodhouse location")+' · your pick is remembered on this device.</p></div>';
+    h+='<p class="finehint" style="text-align:center">'+plural((IDX?IDX.locations.length:0),"Woodhouse location")+' · your pick is remembered on this device.</p></div>';
     return h;
   };
 
