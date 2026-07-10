@@ -33,8 +33,9 @@ for (const key of keys) {
     execFileSync("node", [path.join(ROOT, "scripts", "pull-location.js"),
       "--key", key, "--days", DAYS, "--concurrency", "8", "--suffix", SUFFIX], { stdio: "inherit" });
   } catch (e) {
-    failures++;
-    console.error(`pull ${key} exited nonzero (canary issues or failure) — continuing`);
+    // exit 2 = pulled fine with canary notes (shown in-app); only exit 1 is a real failure
+    if (e.status === 2) console.error(`pull ${key}: canary notes recorded — continuing`);
+    else { failures++; console.error(`pull ${key} failed — continuing`); }
   }
   try {
     execFileSync("node", [path.join(ROOT, "scripts", "upload-blob.js"), "--only", key + SUFFIX], { stdio: "inherit" });
