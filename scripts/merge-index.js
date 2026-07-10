@@ -22,7 +22,9 @@ const ROOT = path.resolve(__dirname, "..");
     blobs.push(...page.blobs);
     cursor = page.hasMore ? page.cursor : null;
   } while (cursor);
-  const byKey = new Map(blobs.map((b) => [path.basename(b.pathname, ".json"), b]));
+  const byKey = new Map(blobs
+    .filter((b) => !b.pathname.endsWith("-near.json"))
+    .map((b) => [path.basename(b.pathname, ".json"), b]));
 
   const locations = registry.locations
     .filter((l) => byKey.has(l.key))

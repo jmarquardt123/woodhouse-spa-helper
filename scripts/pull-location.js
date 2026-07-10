@@ -224,8 +224,9 @@ function minutesOf(isoLike) {
     categories, services, providers, slots
   };
 
+  const suffix = arg("suffix", "");
   fs.mkdirSync(path.join(outdir, "locations"), { recursive: true });
-  const outFile = path.join(outdir, "locations", `${loc.key}.json`);
+  const outFile = path.join(outdir, "locations", `${loc.key}${suffix}.json`);
   fs.writeFileSync(outFile, JSON.stringify(bundle));
 
   // ---- index (read-modify-write; concurrent-shard safe enough per-run) ----

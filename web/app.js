@@ -194,14 +194,21 @@
     var svc=curService();
     var fa=svc&&S.freshAt[svc.si];
     if(fa&&Date.now()-new Date(fa).getTime()<15*60000) return { hrs:0, stale:false, live:fa };
-    var hrs=D&&D.scannedAt?(Date.now()-new Date(D.scannedAt).getTime())/3600000:Infinity;
-    return { hrs:hrs, stale:hrs>9||!(D&&D.canary&&D.canary.ok) };
+    var basis=D&&D.scannedAt;
+    try{
+      if(D&&D.nearScannedAt&&D.nearTo){
+        var x=ym(); var dsel=iso(x[0],x[1],sel());
+        if(dsel<=D.nearTo) basis=D.nearScannedAt;
+      }
+    }catch(e){}
+    var hrs=basis?(Date.now()-new Date(basis).getTime())/3600000:Infinity;
+    return { hrs:hrs, basis:basis, stale:hrs>9||!(D&&D.canary&&D.canary.ok) };
   }
   function freshPill(){
     var f=freshInfo();
     if(S.checking) return '<span class="freshpill old" style="color:var(--soft);background:var(--card);border-color:var(--line)">Checking…</span>';
     if(f.live) return '<span class="freshpill ok">Checked '+agoLabel(f.live)+'</span>';
-    return '<span class="freshpill '+(f.stale?"old":"ok")+'">Checked '+agoLabel(D.scannedAt)+'</span>';
+    return '<span class="freshpill '+(f.stale?"old":"ok")+'">Checked '+agoLabel(f.basis||D.scannedAt)+'</span>';
   }
   function staleBanner(){
     var f=freshInfo();
@@ -614,6 +621,31 @@
     }).catch(function(e){ S.checking=false; render(); toast("Couldn’t check right now"); });
   }
 
+  function overlayNear(near){
+    if(!near||!near.slots) return;
+    var provMap=near.providers.map(function(p){
+      for(var i=0;i<D.providers.length;i++) if(D.providers[i].n.toUpperCase()===p.n.toUpperCase()&&D.providers[i].g===p.g) return i;
+      D.providers.push({n:p.n,g:p.g}); return D.providers.length-1;
+    });
+    var deepByServiceId={};
+    D.services.forEach(function(sv,si){ deepByServiceId[sv.id]=si; });
+    var from=near.dateRange&&near.dateRange.from, to=near.dateRange&&near.dateRange.to;
+    near.services.forEach(function(sv,nsi){
+      var si=deepByServiceId[sv.id];
+      if(si==null) return;
+      var deepSlots=D.slots[si]||(D.slots[si]={});
+      if(from&&to) Object.keys(deepSlots).forEach(function(date){ if(date>=from&&date<=to&&!(near.slots[nsi]||{})[date]) delete deepSlots[date]; });
+      Object.keys(near.slots[nsi]||{}).forEach(function(date){
+        deepSlots[date]=near.slots[nsi][date].map(function(r){
+          var who=sv.couples?r[3].map(function(pp){return pp.map(function(i){return provMap[i];});}):r[3].map(function(i){return provMap[i];});
+          return [r[0],r[1],r[2],who];
+        });
+      });
+    });
+    D.nearScannedAt=near.scannedAt;
+    D.nearTo=to||null;
+  }
+
   /* ---------------- data loading ---------------- */
   function fetchJson(u){ return fetch(u,{cache:"no-cache"}).then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }); }
   function loadError(msg){
@@ -627,6 +659,9 @@
       D=data; buildFams(); ensureSelection();
       if(!store("wsh-filters")){ S.returnTo="home"; go("filters"); }
       else go("home");
+      fetchJson("/data/locations/"+encodeURIComponent(key)+"-near.json")
+        .then(function(near){ overlayNear(near); if(S.view==="home") render(); })
+        .catch(function(){ /* near file not built yet — deep data stands */ });
     }).catch(function(e){ loadError("This spa’s times aren’t available right now ("+e.message+")"); });
   }
 
