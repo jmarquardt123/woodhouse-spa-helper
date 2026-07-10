@@ -1,0 +1,39 @@
+# Refresh availability for every location and upload to Vercel Blob.
+# Sharded so each job scans a slice of locations with polite concurrency.
+name: Refresh availability
+
+on:
+  schedule:
+    - cron: "17 */4 * * *"   # every 4 hours
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Single location key (blank = all)"
+        required: false
+        default: ""
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci --omit=dev 2>/dev/null || npm install --no-fund --no-audit
+      - name: Pull shard and upload
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          ONLY: ${{ github.event.inputs.only }}
+          SHARD: ${{ matrix.shard }}
+          SHARDS: 8
+        run: node scripts/run-shard.js
