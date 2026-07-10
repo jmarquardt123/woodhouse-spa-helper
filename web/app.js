@@ -6,6 +6,19 @@
 
   var app = document.getElementById("app");
   var toastEl = document.getElementById("toast");
+
+  // ---- first-party analytics beacon (never blocks UX) ----
+  var SID = (function(){ try{ var v=sessionStorage.getItem("wsh-sid"); if(!v){ v=Date.now().toString(36)+Math.random().toString(36).slice(2,8); sessionStorage.setItem("wsh-sid",v); } return v; }catch(e){ return ""; } })();
+  var _evOnce={};
+  function track(type,key,meta,once){
+    try{
+      if(once){ if(_evOnce[type+(key||"")]) return; _evOnce[type+(key||"")]=1; }
+      var body=JSON.stringify({type:type,key:key||"",meta:meta||{},sid:SID,path:location.pathname+location.search});
+      if(navigator.sendBeacon){ navigator.sendBeacon("/api/ev", new Blob([body],{type:"application/json"})); }
+      else fetch("/api/ev",{method:"POST",headers:{"content-type":"application/json"},body:body,keepalive:true});
+    }catch(e){}
+  }
+  track("visit");
   var IDX = null;  // location index
   var EMAIL_READY = false;
   var D = null;    // current location dataset (v2)
@@ -587,6 +600,7 @@
       S.time=t;
       S.timeRow=rowsFor(iso(ym()[0],ym()[1],sel())).find(function(r){return r[0]===t;})||null;
       S.steps={}; S.cardCheck=null;
+      track("card", S.locKey, { svc: fam()&&fam().name, len:S.len });
       go("card");
     }); });
     app.querySelectorAll("[data-set]").forEach(function(b){ b.addEventListener("click",function(){
@@ -652,6 +666,7 @@
       if(a==="rescan"){ doRescan(); }
       if(a==="cardcheck"){
         if(S.cardCheck==="checking") return;
+        track("recheck", S.locKey);
         S.cardCheck="checking"; render();
         var x2=ym(), dIso=iso(x2[0],x2[1],sel());
         rescanCore().then(function(res){
@@ -666,6 +681,7 @@
       if(a==="alertsend"){
         var em=(val("alertEmail")||"").trim();
         if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)){ toast("That email doesn’t look right"); return; }
+        track("alert_start", S.locKey);
         S.alertBusy=true; render();
         fetch("/api/watches",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
           action:"create", email:em, key:S.locKey, label:sentence(),
@@ -674,6 +690,7 @@
           S.alertBusy=false;
           if(!res.ok){ toast(res.error||"Couldn’t set the alert"); render(); return; }
           var ids=store("wsh-watchids")||[]; ids.push(res.id); store("wsh-watchids",ids.slice(-20));
+          track("alert_confirm", S.locKey);
           S.alertStage="inbox"; render();
         }).catch(function(){ S.alertBusy=false; render(); toast("Couldn’t set the alert"); });
       }
@@ -696,7 +713,7 @@
     var agree=document.getElementById("agree");
     if(agree) agree.addEventListener("change",function(){ S.terms=agree.checked; store("wsh-terms",S.terms); render(); });
     var openWh=document.getElementById("openWh");
-    if(openWh) openWh.addEventListener("click",function(){ if(!openWh.disabled){ window.open(D.bookingUrl,"_blank","noopener"); toast("Opening Woodhouse · finish the booking there"); } });
+    if(openWh) openWh.addEventListener("click",function(){ if(!openWh.disabled){ window.open(D.bookingUrl,"_blank","noopener"); track("booking", S.locKey, { svc: fam()&&fam().name }); toast("Opening Woodhouse · finish the booking there"); } });
     var strip=document.getElementById("strip");
     if(strip) strip.addEventListener("click",function(e){
       if(e.target.id==="stripX"){ S.strip=false; render(); toast("Saved time dismissed"); }
@@ -796,6 +813,7 @@
   }
   function chooseLocation(key){
     S.locKey=key; store("wsh-loc",key);
+    track("location", key);
     D=null; FAMS=null; S.ym=null; S.selBy={}; S.time=null; S.strip=false;
     app.innerHTML='<div class="boot"><div class="boot-pip"></div><p>Loading open times…</p></div>';
     fetchJson("/data/locations/"+encodeURIComponent(key)+".json").then(function(data){
@@ -811,6 +829,7 @@
 
   window.addEventListener("resize",function(){ clearTimeout(window._rz); window._rz=setTimeout(function(){ if(S.view==="home") render(); },150); });
 
+  (function(){ try{ var m=new URLSearchParams(location.search).get("loc"); if(m){ S.locKey=m; store("wsh-loc",m); history.replaceState({v:"home"},"","/"); } }catch(e){} })();
   fetch("/api/watches?action=status").then(function(r){return r.json();})
     .then(function(st){ EMAIL_READY=!!(st&&st.emailReady); if(S.view==="home") render(); }).catch(function(){});
   fetchJson("/data/index.json").then(function(idx){

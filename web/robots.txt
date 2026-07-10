@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /owner
+Sitemap: https://woodhouseopenings.com/sitemap.xml

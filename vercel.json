@@ -3,17 +3,13 @@
   "outputDirectory": "web",
   "framework": null,
   "rewrites": [
-    {
-      "source": "/data/:path*",
-      "destination": "https://cfrjzkgnoil4u5ks.public.blob.vercel-storage.com/data/:path*"
-    }
+    { "source": "/data/:path*", "destination": "https://cfrjzkgnoil4u5ks.public.blob.vercel-storage.com/data/:path*" },
+    { "source": "/spa/:key", "destination": "/api/spa?key=:key" },
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+    { "source": "/owner", "destination": "/owner.html" }
   ],
   "headers": [
-    {
-      "source": "/fonts/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    }
+    { "source": "/fonts/(.*)", "headers": [ { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" } ] },
+    { "source": "/owner.html", "headers": [ { "key": "X-Robots-Tag", "value": "noindex, nofollow" } ] }
   ]
 }

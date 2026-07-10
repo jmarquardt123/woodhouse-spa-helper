@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Openings · Owner</title>
+<style>
+:root{--bg:#12100E;--panel:#1B1815;--panel2:#231F1B;--ink:#EFE6D8;--soft:#A79987;--faint:#6F645A;--line:#302A24;--wine:#D08FA1;--live:#8FC8A5;--amber:#D9AA61}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5}
+.wrap{max-width:1160px;margin:0 auto;padding:22px 18px 80px}
+h1{font-size:22px;margin:0;font-weight:700;letter-spacing:.01em}
+.head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.head .sub{color:var(--soft);font-size:13px}
+.rangebtns{margin-left:auto;display:flex;gap:6px}
+.rangebtns button{background:var(--panel);border:1px solid var(--line);color:var(--soft);border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.rangebtns button.on{background:var(--wine);border-color:var(--wine);color:#241318}
+.gate{max-width:360px;margin:16vh auto;text-align:center}
+.gate input{width:100%;font:inherit;font-size:16px;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:13px 15px;margin:14px 0}
+.gate button{width:100%;background:var(--wine);color:#241318;border:none;border-radius:12px;padding:13px;font:inherit;font-weight:700;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 16px}
+.stat .n{font-size:28px;font-weight:800;letter-spacing:-.02em}
+.stat .l{font-size:12px;color:var(--soft);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+.stat .d{font-size:12px;color:var(--live);margin-top:4px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.cols{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:14px}
+.card h2{font-size:14px;margin:0 0 12px;color:var(--soft);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.funnel .step{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.funnel .bar{height:26px;background:var(--wine);border-radius:6px;min-width:2px}
+.funnel .lbl{width:120px;font-size:13px;flex:none}
+.funnel .val{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px}
+.funnel .rate{color:var(--soft);font-size:12px}
+.ip{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--soft)}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--panel2);color:var(--soft)}
+.pill.google{background:#243b28;color:var(--live)}
+.pill.booking{background:#3a2a12;color:var(--amber)}
+.pill.alert_confirm{background:#2a1a20;color:var(--wine)}
+.muted{color:var(--faint);font-size:13px}
+.spark{display:flex;align-items:flex-end;gap:3px;height:46px;margin-top:6px}
+.spark i{flex:1;background:var(--wine);border-radius:2px 2px 0 0;min-height:2px;opacity:.85}
+.err{color:var(--amber);font-size:13px}
+a{color:var(--wine)}
+</style>
+</head>
+<body>
+<div id="app"><div class="gate">
+  <h1>Openings · Owner</h1>
+  <input id="pw" type="password" placeholder="Password" autofocus>
+  <button id="go">Open dashboard</button>
+  <p class="muted" id="gerr"></p>
+</div></div>
+<script>
+var KEY = null, DAYS = 7;
+try { KEY = localStorage.getItem("owner-key"); } catch(e){}
+var app = document.getElementById("app");
+
+function money(n){ return n; }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function timeAgo(t){ var m=Math.round((Date.now()-new Date(t))/60000); if(m<1)return"now"; if(m<60)return m+"m"; var h=Math.round(m/60); if(h<48)return h+"h"; return Math.round(h/24)+"d"; }
+
+function gate(msg){
+  app.innerHTML='<div class="gate"><h1>Openings · Owner</h1><input id="pw" type="password" placeholder="Password" autofocus><button id="go">Open dashboard</button><p class="muted err">'+(msg||"")+'</p></div>';
+  document.getElementById("go").onclick=submit;
+  document.getElementById("pw").onkeydown=function(e){ if(e.key==="Enter") submit(); };
+}
+function submit(){
+  var v=document.getElementById("pw").value.trim();
+  if(!v) return;
+  KEY=v; try{ localStorage.setItem("owner-key",v); }catch(e){}
+  load();
+}
+function fmt(n){ return (n||0).toLocaleString(); }
+
+function load(){
+  app.innerHTML='<div class="wrap"><p class="muted">Loading…</p></div>';
+  fetch("/api/owner?days="+DAYS,{ headers:{ "x-owner-key":KEY } })
+    .then(function(r){ if(r.status===401){ gate("Wrong password."); throw new Error("401"); } return r.json(); })
+    .then(render).catch(function(e){ if(String(e.message)!=="401") app.innerHTML='<div class="wrap"><p class="err">Error: '+esc(e.message)+'</p></div>'; });
+}
+
+function render(d){
+  if(!d.ok){ app.innerHTML='<div class="wrap"><p class="err">'+esc(d.error||"error")+'</p></div>'; return; }
+  var days=[7,30,90];
+  var h='<div class="wrap"><div class="head"><h1>Openings · Owner</h1><span class="sub">'+fmt(d.totalEvents)+' events · last '+d.days+' days</span>'+
+    '<span class="rangebtns">'+days.map(function(x){return '<button class="'+(x===DAYS?"on":"")+'" data-days="'+x+'">'+x+'d</button>';}).join("")+'</span></div>';
+
+  // stats
+  h+='<div class="grid">'+
+    stat(fmt(d.uniqueVisitors),"Visitors")+
+    stat(fmt(d.funnel.visit),"Visits")+
+    stat(fmt(d.funnel.card),"Times viewed")+
+    stat(fmt(d.funnel.booking),"Booking clicks")+
+    stat(fmt(d.funnel.alert_confirm),"Alerts set")+
+  '</div>';
+
+  // sparkline of visits by day
+  var dd=d.byDay.slice().reverse();
+  var mx=Math.max(1,Math.max.apply(null,dd.map(function(x){return x.visits;})));
+  h+='<div class="card"><h2>Visits per day</h2><div class="spark">'+
+    dd.map(function(x){return '<i title="'+x.day+': '+x.visits+'" style="height:'+Math.round(x.visits/mx*100)+'%"></i>';}).join("")+
+    '</div><p class="muted">'+(dd[0]?dd[0].day:"")+' → '+(dd[dd.length-1]?dd[dd.length-1].day:"")+'</p></div>';
+
+  h+='<div class="cols">';
+  // funnel
+  var f=d.funnel, base=Math.max(1,f.visit);
+  h+='<div class="card funnel"><h2>Funnel</h2>'+
+    fstep("Visits",f.visit,base,"")+
+    fstep("Viewed a time",f.card,base,d.conversion.visitToCard+"% of visits")+
+    fstep("Clicked to book",f.booking,base,d.conversion.cardToBooking+"% of viewers")+
+    fstep("Started alert",f.alert_start,base,"")+
+    fstep("Confirmed alert",f.alert_confirm,base,d.conversion.visitToAlert+"% of visits")+
+  '</div>';
+  // sources
+  h+='<div class="card"><h2>Traffic sources</h2><table><tbody>'+
+    d.sources.slice(0,8).map(function(s){return '<tr><td><span class="pill '+(s.source==="google"?"google":"")+'">'+esc(s.source)+'</span></td><td class="n">'+fmt(s.count)+'</td></tr>';}).join("")+
+    '</tbody></table></div>';
+  h+='</div>';
+
+  h+='<div class="cols">';
+  // top markets
+  h+='<div class="card"><h2>Top markets</h2><table><thead><tr><th>City</th><th class="n">Visits</th><th class="n">Times</th><th class="n">Book</th><th class="n">Alerts</th></tr></thead><tbody>'+
+    (d.topMarkets.length?d.topMarkets.map(function(m){return '<tr><td>'+esc(m.city)+'</td><td class="n">'+fmt(m.visits)+'</td><td class="n">'+fmt(m.cards)+'</td><td class="n">'+fmt(m.bookings)+'</td><td class="n">'+fmt(m.alerts)+'</td></tr>';}).join(""):'<tr><td class="muted" colspan="5">No market activity yet</td></tr>')+
+    '</tbody></table></div>';
+  // cities (visitor geo)
+  h+='<div class="card"><h2>Visitor locations</h2><table><tbody>'+
+    (d.cities.length?d.cities.map(function(c){return '<tr><td>'+esc(c.city)+'</td><td class="n">'+fmt(c.count)+'</td></tr>';}).join(""):'<tr><td class="muted">No data yet</td></tr>')+
+    '</tbody></table></div>';
+  h+='</div>';
+
+  // GSC ranks
+  if(d.ranks && d.ranks.available){
+    var t=d.ranks.totals;
+    h+='<div class="card"><h2>Google Search — last '+d.days+' days</h2>'+
+      '<div class="grid">'+stat(fmt(t.clicks),"Clicks")+stat(fmt(t.impressions),"Impressions")+stat((t.ctr*100).toFixed(1)+"%","CTR")+stat(t.position.toFixed(1),"Avg position")+'</div>'+
+      '<table><thead><tr><th>Query</th><th class="n">Clicks</th><th class="n">Impr</th><th class="n">Pos</th></tr></thead><tbody>'+
+      d.ranks.topQueries.map(function(q){return '<tr><td>'+esc(q.q)+'</td><td class="n">'+fmt(q.clicks)+'</td><td class="n">'+fmt(q.impressions)+'</td><td class="n">'+q.position+'</td></tr>';}).join("")+
+      '</tbody></table></div>';
+  } else {
+    h+='<div class="card"><h2>Google Search rankings</h2><p class="muted">'+esc((d.ranks&&d.ranks.note)||"Connect Search Console to see rankings here.")+'</p></div>';
+  }
+
+  // recent visitors with IP
+  h+='<div class="card"><h2>Recent activity</h2><table><thead><tr><th>When</th><th>Type</th><th>Where</th><th>IP</th><th>Source</th><th>Market</th></tr></thead><tbody>'+
+    (d.recent.length?d.recent.map(function(r){return '<tr><td>'+timeAgo(r.t)+'</td><td><span class="pill '+esc(r.type)+'">'+esc(r.type)+'</span></td><td>'+esc([r.city,r.region||r.country].filter(Boolean).join(", ")||"?")+'</td><td class="ip">'+esc(r.ip||"?")+'</td><td>'+esc(r.source||"")+'</td><td>'+esc(r.market||"")+'</td></tr>';}).join(""):'<tr><td class="muted" colspan="6">No visits yet — share the site to start seeing traffic here.</td></tr>')+
+    '</tbody></table></div>';
+
+  h+='</div>';
+  app.innerHTML=h;
+  app.querySelectorAll("[data-days]").forEach(function(b){ b.onclick=function(){ DAYS=Number(b.getAttribute("data-days")); load(); }; });
+}
+
+function stat(n,l,d){ return '<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div>'+(d?'<div class="d">'+d+'</div>':'')+'</div>'; }
+function fstep(lbl,val,base,rate){
+  var w=Math.round(val/base*100);
+  return '<div class="step"><span class="lbl">'+lbl+'</span><span class="bar" style="width:'+Math.max(2,w)+'%"></span><span class="val">'+fmt(val)+'</span> <span class="rate">'+(rate||"")+'</span></div>';
+}
+
+if(KEY) load(); else { document.getElementById("go").onclick=submit; document.getElementById("pw").onkeydown=function(e){ if(e.key==="Enter") submit(); }; }
+</script>
+</body>
+</html>
