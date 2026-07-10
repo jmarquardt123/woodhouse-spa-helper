@@ -3,6 +3,9 @@
 name: Refresh availability
 
 on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/refresh.yml"]
   schedule:
     - cron: "17 */4 * * *"   # every 4 hours
   workflow_dispatch:
