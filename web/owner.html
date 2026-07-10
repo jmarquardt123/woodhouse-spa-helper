@@ -5,7 +5,8 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Openings · Owner</title>
 <style>
-:root{--bg:#12100E;--panel:#1B1815;--panel2:#231F1B;--ink:#EFE6D8;--soft:#A79987;--faint:#6F645A;--line:#302A24;--wine:#D08FA1;--live:#8FC8A5;--amber:#D9AA61}
+:root{--bg:#F6F2E9;--panel:#FCFAF4;--panel2:#F0EBE0;--ink:#2A2118;--soft:#75685A;--faint:#A2937F;--line:#E3DAC8;--wine:#722F44;--live:#47795D;--amber:#9C6B22;--onwine:#fff}
+[data-theme="dark"]{--bg:#12100E;--panel:#1B1815;--panel2:#231F1B;--ink:#EFE6D8;--soft:#A79987;--faint:#6F645A;--line:#302A24;--wine:#D08FA1;--live:#8FC8A5;--amber:#D9AA61;--onwine:#241318}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5}
 .wrap{max-width:1160px;margin:0 auto;padding:22px 18px 80px}
@@ -13,11 +14,12 @@ h1{font-size:22px;margin:0;font-weight:700;letter-spacing:.01em}
 .head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
 .head .sub{color:var(--soft);font-size:13px}
 .rangebtns{margin-left:auto;display:flex;gap:6px}
+.thm{background:var(--panel);border:1px solid var(--line);color:var(--soft);border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .rangebtns button{background:var(--panel);border:1px solid var(--line);color:var(--soft);border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
-.rangebtns button.on{background:var(--wine);border-color:var(--wine);color:#241318}
+.rangebtns button.on{background:var(--wine);border-color:var(--wine);color:var(--onwine)}
 .gate{max-width:360px;margin:16vh auto;text-align:center}
 .gate input{width:100%;font:inherit;font-size:16px;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:13px 15px;margin:14px 0}
-.gate button{width:100%;background:var(--wine);color:#241318;border:none;border-radius:12px;padding:13px;font:inherit;font-weight:700;cursor:pointer}
+.gate button{width:100%;background:var(--wine);color:var(--onwine);border:none;border-radius:12px;padding:13px;font:inherit;font-weight:700;cursor:pointer}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 16px}
 .stat .n{font-size:28px;font-weight:800;letter-spacing:-.02em}
@@ -38,9 +40,9 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .funnel .rate{color:var(--soft);font-size:12px}
 .ip{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--soft)}
 .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--panel2);color:var(--soft)}
-.pill.google{background:#243b28;color:var(--live)}
-.pill.booking{background:#3a2a12;color:var(--amber)}
-.pill.alert_confirm{background:#2a1a20;color:var(--wine)}
+.pill.google{background:color-mix(in srgb, var(--live) 18%, transparent);color:var(--live)}
+.pill.booking{background:color-mix(in srgb, var(--amber) 18%, transparent);color:var(--amber)}
+.pill.alert_confirm{background:color-mix(in srgb, var(--wine) 18%, transparent);color:var(--wine)}
 .muted{color:var(--faint);font-size:13px}
 .spark{display:flex;align-items:flex-end;gap:3px;height:46px;margin-top:6px}
 .spark i{flex:1;background:var(--wine);border-radius:2px 2px 0 0;min-height:2px;opacity:.85}
@@ -57,6 +59,7 @@ a{color:var(--wine)}
 </div></div>
 <script>
 var KEY = null, DAYS = 7;
+try{ if(localStorage.getItem("owner-theme")==="dark") document.documentElement.setAttribute("data-theme","dark"); }catch(e){}
 try { KEY = localStorage.getItem("owner-key"); } catch(e){}
 var app = document.getElementById("app");
 
@@ -88,7 +91,7 @@ function render(d){
   if(!d.ok){ app.innerHTML='<div class="wrap"><p class="err">'+esc(d.error||"error")+'</p></div>'; return; }
   var days=[7,30,90];
   var h='<div class="wrap"><div class="head"><h1>Openings · Owner</h1><span class="sub">'+fmt(d.totalEvents)+' events · last '+d.days+' days</span>'+
-    '<span class="rangebtns">'+days.map(function(x){return '<button class="'+(x===DAYS?"on":"")+'" data-days="'+x+'">'+x+'d</button>';}).join("")+'</span></div>';
+    '<span class="rangebtns">'+days.map(function(x){return '<button class="'+(x===DAYS?"on":"")+'" data-days="'+x+'">'+x+'d</button>';}).join("")+'<button class="thm" id="thmBtn">'+(document.documentElement.getAttribute("data-theme")==="dark"?"Light":"Dark")+'</button></span></div>';
 
   // stats
   h+='<div class="grid">'+
@@ -153,6 +156,13 @@ function render(d){
   h+='</div>';
   app.innerHTML=h;
   app.querySelectorAll("[data-days]").forEach(function(b){ b.onclick=function(){ DAYS=Number(b.getAttribute("data-days")); load(); }; });
+  var tb=document.getElementById("thmBtn");
+  if(tb) tb.onclick=function(){
+    var dark=document.documentElement.getAttribute("data-theme")==="dark";
+    if(dark){ document.documentElement.removeAttribute("data-theme"); try{localStorage.setItem("owner-theme","light");}catch(e){} }
+    else { document.documentElement.setAttribute("data-theme","dark"); try{localStorage.setItem("owner-theme","dark");}catch(e){} }
+    tb.textContent=dark?"Dark":"Light";
+  };
 }
 
 function stat(n,l,d){ return '<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div>'+(d?'<div class="d">'+d+'</div>':'')+'</div>'; }
