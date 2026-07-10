@@ -10,6 +10,7 @@ const path = require("path");
 
 const WEB = path.resolve(__dirname, "..", "web");
 const rescan = require("../api/rescan.js");
+const watches = require("../api/watches.js");
 const BLOB = "https://cfrjzkgnoil4u5ks.public.blob.vercel-storage.com";
 const PORT = Number(process.argv[process.argv.indexOf("--port") + 1]) || 4890;
 
@@ -22,6 +23,10 @@ const types = {
 
 http.createServer((req, res) => {
   const url = new URL(req.url, `http://x`);
+  if (url.pathname === "/api/watches") {
+    watches(req, res).catch((e) => { res.writeHead(500); res.end(JSON.stringify({ ok: false, error: e.message })); });
+    return;
+  }
   if (url.pathname === "/api/rescan") {
     rescan(req, res).catch((e) => { res.writeHead(500); res.end(JSON.stringify({ ok: false, error: e.message })); });
     return;

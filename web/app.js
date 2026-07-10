@@ -7,6 +7,7 @@
   var app = document.getElementById("app");
   var toastEl = document.getElementById("toast");
   var IDX = null;  // location index
+  var EMAIL_READY = false;
   var D = null;    // current location dataset (v2)
   var FAMS = null; // service families derived from D
 
@@ -66,6 +67,7 @@
     strip:false, stripInfo:null,
     returnTo:null,
     profile: store("wsh-profile") || {name:"",email:""},
+    alertStage:"form", alertBusy:false, myWatches:null,
     locSearch:""
   };
   var saved = store("wsh-filters");
@@ -305,12 +307,14 @@
     }
     h+='</div>';
     h+= list.length ? (dayHead(list)+bandsHtml(list,false)) : emptyDay();
-    h+='<div class="sheetfoot"><button class="ghostbtn" data-act="rescan">'+(S.checking?"Checking Woodhouse…":"Check for new times")+'</button></div>';
+    h+='<div class="sheetfoot"><button class="ghostbtn" data-act="rescan">'+(S.checking?"Checking Woodhouse…":"Check for new times")+'</button>'+
+      (EMAIL_READY?'<button class="ghostbtn winey" data-go="alert">Email me when more open</button>':"")+'</div>';
     h+=footerHtml()+'</div>';
     // wide layout
     h+='<div class="webhome"><aside>'+brandHtml()+monthHeader(false)+monthGrid()+'</aside><main>'+choiceHtml()+staleBanner()+
       (list.length?(dayHead(list)+bandsHtml(list,true)):emptyDay())+
-      '<div class="sheetfoot" style="margin-top:16px"><button class="ghostbtn" style="max-width:280px" data-act="rescan">'+(S.checking?"Checking Woodhouse…":"Check for new times")+'</button></div>'+
+      '<div class="sheetfoot" style="margin-top:16px;flex-direction:row;flex-wrap:wrap"><button class="ghostbtn" style="max-width:280px" data-act="rescan">'+(S.checking?"Checking Woodhouse…":"Check for new times")+'</button>'+
+      (EMAIL_READY?'<button class="ghostbtn winey" style="max-width:280px" data-go="alert">Email me when more open</button>':"")+'</div>'+
       '</main>'+footerHtml()+'</div>';
     return h;
   };
@@ -422,6 +426,35 @@
     return h;
   };
 
+  VIEWS.alert=function(){
+    var h='<div class="pad">'+subhead("Email alert","We tell you the moment it opens");
+    if(S.alertStage==="form"){
+      h+='<div class="bigserif">Want a time that isn’t there?</div>'+
+        '<p class="lede">Leave your email. When a matching time opens at '+esc(D.city)+', we email you.</p>'+
+        '<div class="aboutcard"><h3 style="font-size:15px;margin-bottom:2px">Watching</h3><p>'+esc(sentence())+'</p>'+
+        '<p style="margin-top:8px"><button class="x" data-act="opensheet" style="color:var(--wine);background:none;border:none;font-weight:640;padding:0">Change what to watch</button></p></div>'+
+        '<div class="field"><label>Your email</label><input type="email" id="alertEmail" inputmode="email" placeholder="you@example.com" value="'+esc(S.profile.email||"")+'"></div>'+
+        '<p class="finehint">One email when something opens. Unsubscribe link in every email.</p>'+
+        '<div class="applywrap"><button class="cta" data-act="alertsend"'+(S.alertBusy?" disabled":"")+'>'+(S.alertBusy?"Setting up…":"Watch for me")+'</button></div>';
+    } else {
+      h+='<div class="aboutcard" style="text-align:center;padding:26px 18px"><h3>Check your inbox</h3><p>Tap the link we emailed you to turn on the alert. Then you’re done.</p></div>'+
+        '<div class="applywrap"><button class="cta sub" data-go="home">Back to the calendar</button></div>';
+    }
+    return h+'</div>';
+  };
+
+  VIEWS.myalerts=function(){
+    var h='<div class="pad">'+subhead("My alerts",null)+'<div style="height:12px"></div>';
+    if(S.myWatches===null){ h+='<p class="lede">Loading…</p>'; }
+    else if(!S.myWatches.length){ h+='<p class="lede">No alerts on this device. Set your visit on the calendar, then tap “Email me when more open.”</p>'; }
+    else S.myWatches.forEach(function(w){
+      h+='<div class="setrow"><span class="sl"><b>'+esc(w.label)+'</b><span>'+esc(w.locLabel)+' · '+esc(w.email)+' · '+(w.confirmed?"active":"waiting for email confirm")+'</span></span>'+
+        '<button class="x" data-unsub="'+esc(w.unsub)+'" style="color:var(--amber);background:none;border:none;font-weight:640">Remove</button></div>';
+    });
+    h+='<p class="finehint">Every alert email also has an unsubscribe link. No login needed.</p></div>';
+    return h;
+  };
+
   VIEWS.details=function(){
     var p=S.profile;
     return '<div class="pad">'+subhead("Your details","Stays on this device")+
@@ -436,6 +469,7 @@
       '<div style="height:14px"></div>'+
       '<button class="setrow" data-go="location"><span class="si">'+pin()+'</span><span class="sl"><b>My spa</b><span>'+esc(D?D.label:"Choose a spa")+'</span></span><span class="ch">›</span></button>'+
       '<button class="setrow" data-go="details"><span class="si">'+icon("pencil",16)+'</span><span class="sl"><b>Your details</b><span>'+esc(S.profile.name||"Not set · stays on this device")+'</span></span><span class="ch">›</span></button>'+
+      ((EMAIL_READY||(store("wsh-watchids")||[]).length)?'<button class="setrow" data-act="myalerts"><span class="si">'+icon("info",16)+'</span><span class="sl"><b>My alerts</b><span>Email watches set on this device</span></span><span class="ch">›</span></button>':"")+
       '<div class="statehdr">Appearance</div><div class="seg3" id="themeSeg">'+
         ["light","auto","dark"].map(function(t){
           var cur; try{ cur=localStorage.getItem("wsh-theme")||"auto"; }catch(e){ cur="auto"; }
@@ -490,7 +524,7 @@
   function saveFilters(){ store("wsh-filters",{who:S.who,g1:S.g1,g2:S.g2,cat:S.cat,fam:S.fam,len:S.len,days:S.days,t1:S.t1,t2:S.t2}); }
 
   function wire(){
-    app.querySelectorAll("[data-go]").forEach(function(b){ b.addEventListener("click",function(e){ e.stopPropagation(); go(b.getAttribute("data-go")); }); });
+    app.querySelectorAll("[data-go]").forEach(function(b){ b.addEventListener("click",function(e){ e.stopPropagation(); var v=b.getAttribute("data-go"); if(v==="alert") S.alertStage="form"; go(v); }); });
     app.querySelectorAll("[data-day]").forEach(function(b){ b.addEventListener("click",function(){ S.selBy[ymKey()]=Number(b.getAttribute("data-day")); render(); }); });
     app.querySelectorAll("[data-pick]").forEach(function(b){ b.addEventListener("click",function(){ S.selBy[ymKey()]=Number(b.getAttribute("data-pick")); go("home"); }); });
     app.querySelectorAll("[data-time]").forEach(function(b){ b.addEventListener("click",function(){
@@ -538,6 +572,11 @@
       if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(done,done); else done();
     }); });
     app.querySelectorAll("[data-step]").forEach(function(b){ b.addEventListener("click",function(){ var i=b.getAttribute("data-step"); S.steps[i]=!S.steps[i]; render(); }); });
+    app.querySelectorAll("[data-unsub]").forEach(function(b){ b.addEventListener("click",function(){
+      fetch(b.getAttribute("data-unsub")).then(function(){ toast("Alert removed");
+        var row=b.closest(".setrow"); if(row) row.remove();
+      }).catch(function(){ toast("Couldn’t remove it right now"); });
+    }); });
     app.querySelectorAll("[data-loc]").forEach(function(b){ b.addEventListener("click",function(){ chooseLocation(b.getAttribute("data-loc")); }); });
     var locSearch=document.getElementById("locSearch");
     if(locSearch){ locSearch.addEventListener("input",function(){ S.locSearch=locSearch.value;
@@ -556,6 +595,27 @@
         store("wsh-profile",S.profile); toast("Saved on this device"); go(S.time!=null?"card":"settings");
       }
       if(a==="rescan"){ doRescan(); }
+      if(a==="alertsend"){
+        var em=(val("alertEmail")||"").trim();
+        if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)){ toast("That email doesn’t look right"); return; }
+        S.alertBusy=true; render();
+        fetch("/api/watches",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+          action:"create", email:em, key:S.locKey, label:sentence(),
+          filters:{who:S.who,g1:S.g1,g2:S.g2,fam:S.fam,len:S.len,days:S.days,t1:S.t1,t2:S.t2}
+        })}).then(function(r){return r.json();}).then(function(res){
+          S.alertBusy=false;
+          if(!res.ok){ toast(res.error||"Couldn’t set the alert"); render(); return; }
+          var ids=store("wsh-watchids")||[]; ids.push(res.id); store("wsh-watchids",ids.slice(-20));
+          S.alertStage="inbox"; render();
+        }).catch(function(){ S.alertBusy=false; render(); toast("Couldn’t set the alert"); });
+      }
+      if(a==="myalerts"){
+        S.myWatches=null; go("myalerts");
+        var ids=store("wsh-watchids")||[];
+        fetch("/api/watches",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"mine",ids:ids})})
+          .then(function(r){return r.json();}).then(function(res){ S.myWatches=res.ok?res.watches:[]; if(S.view==="myalerts") render(); })
+          .catch(function(){ S.myWatches=[]; if(S.view==="myalerts") render(); });
+      }
       if(a==="minimize"){
         var x=ym();
         S.strip=true;
@@ -673,6 +733,8 @@
 
   window.addEventListener("resize",function(){ clearTimeout(window._rz); window._rz=setTimeout(function(){ if(S.view==="home") render(); },150); });
 
+  fetch("/api/watches?action=status").then(function(r){return r.json();})
+    .then(function(st){ EMAIL_READY=!!(st&&st.emailReady); if(S.view==="home") render(); }).catch(function(){});
   fetchJson("/data/index.json").then(function(idx){
     IDX=idx;
     var keys=new Set(idx.locations.map(function(l){return l.key;}));

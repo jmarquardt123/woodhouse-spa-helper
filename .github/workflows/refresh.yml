@@ -47,3 +47,21 @@ jobs:
           SHARD: ${{ matrix.shard }}
           SHARDS: 16
         run: node scripts/run-shard.js
+
+  alerts:
+    needs: refresh
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci --omit=dev 2>/dev/null || npm install --no-fund --no-audit
+      - name: Check watches and send alert emails
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          WATCH_SECRET: ${{ secrets.WATCH_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SITE_URL: https://woodhouse-spa-helper.vercel.app
+        run: node scripts/check-watches.js
