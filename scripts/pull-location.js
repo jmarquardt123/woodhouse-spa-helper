@@ -37,7 +37,12 @@ async function mapLimit(items, limit, fn) {
     while (i < items.length) {
       const idx = i++;
       try { out[idx] = await fn(items[idx], idx); }
-      catch (e) { out[idx] = { __error: e.message || String(e) }; }
+      catch (e1) {
+        // one polite retry — transient timeouts happen on long scan batches
+        await new Promise((r) => setTimeout(r, 1500));
+        try { out[idx] = await fn(items[idx], idx); }
+        catch (e2) { out[idx] = { __error: e2.message || String(e2) }; }
+      }
     }
   }));
   return out;
