@@ -55,7 +55,7 @@ input, select { font: inherit; }
 .brandrow .wm .helper { display:block; font-family:Marcellus,serif; font-size:19px; font-weight:700; letter-spacing:.02em; }
 .brandrow .gear { margin-left:auto; width:42px; height:42px; border-radius:50%; color:var(--soft); display:grid; place-items:center; border:1px solid var(--line); background:var(--card); }
 .locline { margin-top:10px; }
-.locline button { display:inline-flex; align-items:center; gap:6px; background:none; border:none; padding:0; font-size:13px; letter-spacing:.22em; text-transform:uppercase; color:var(--faint); }
+.locline button { display:inline-flex; align-items:center; gap:6px; background:none; border:none; padding:0; font-size:13px; letter-spacing:.18em; text-transform:uppercase; color:var(--soft); }
 .locline button b { color:var(--soft); font-weight:600; }
 
 /* month header */
@@ -67,13 +67,13 @@ input, select { font: inherit; }
 .monthrow .tools button.calbtn { width:auto; padding:0 16px; font-size:15px; height:38px; border-radius:999px; }
 .monthrow .tools button:hover:not(:disabled) { color:var(--wine); border-color:var(--winesoft); }
 .monthrow .tools button:disabled { opacity:.35; cursor:default; }
-.horizon { font-size:13.5px; color:var(--faint); margin:6px 2px 0; }
+.horizon { font-size:14px; color:var(--faint); margin:6px 2px 0; }
 
 /* choice sentence */
 .choice { margin:14px 0 0; }
 .choice button { width:100%; text-align:left; display:flex; align-items:center; gap:10px; background:var(--tint); color:var(--wine); border:none; border-radius:14px; padding:12px 15px; }
 .choice .cw { flex:1; min-width:0; line-height:1.3; }
-.choice .cw .cl { display:block; font-size:11px; letter-spacing:.2em; text-transform:uppercase; opacity:.75; font-weight:700; }
+.choice .cw .cl { display:block; font-size:12px; letter-spacing:.18em; text-transform:uppercase; opacity:.8; font-weight:700; }
 .choice .cw .cs { display:block; font-size:17px; font-weight:600; }
 .choice .ar { flex:none; opacity:.75; }
 
@@ -81,7 +81,7 @@ input, select { font: inherit; }
 .ribbon { display:flex; gap:8px; overflow-x:auto; padding:16px 2px 6px; scrollbar-width:none; }
 .ribbon::-webkit-scrollbar { display:none; }
 .dcard { flex:none; width:74px; padding:10px 0 9px; border-radius:16px; text-align:center; background:var(--card); border:1px solid var(--line); }
-.dcard .dw { display:block; font-size:13px; font-weight:700; letter-spacing:.08em; color:var(--faint); text-transform:uppercase; }
+.dcard .dw { display:block; font-size:13px; font-weight:700; letter-spacing:.08em; color:var(--soft); text-transform:uppercase; }
 .dcard .dn { display:block; font-family:Marcellus,serif; font-size:25px; margin:1px 0; }
 .dcard .dc { display:block; font-size:12px; font-weight:600; color:var(--wine); }
 .dcard.none .dc { color:var(--faint); }
@@ -89,8 +89,8 @@ input, select { font: inherit; }
 .dcard.on .dw,.dcard.on .dn,.dcard.on .dc { color:var(--onwine); }
 
 /* day sheet */
-.sheetlbl { margin:14px 2px 0; font-size:16px; color:var(--soft); font-weight:600; }
-.sheetlbl b { color:var(--ink); font-weight:700; }
+.sheetlbl { margin:14px 2px 0; font-size:17px; color:var(--soft); font-weight:400; }
+.sheetlbl b { color:var(--ink); font-weight:650; font-size:19px; }
 .sheethead { display:flex; align-items:center; gap:10px; }
 .sheethead .sheetlbl { margin:0; flex:1; min-width:0; }
 .freshpill { flex:none; font-size:13px; font-weight:700; border-radius:999px; padding:5px 11px; white-space:nowrap; }
@@ -99,7 +99,7 @@ input, select { font: inherit; }
 .band { margin-top:14px; }
 .bandlbl { display:flex; align-items:center; gap:12px; margin:0 2px 7px; }
 .bandlbl::before,.bandlbl::after { content:""; flex:1; height:1px; background:var(--hair); }
-.bandlbl span { font-size:12px; letter-spacing:.26em; text-transform:uppercase; color:var(--faint); font-weight:700; }
+.bandlbl span { font-size:13px; letter-spacing:.22em; text-transform:uppercase; color:var(--soft); font-weight:700; }
 .group { background:var(--card); border:1px solid var(--line); border-radius:18px; overflow:hidden; }
 .trow { display:flex; align-items:baseline; gap:10px; width:100%; background:none; border:none; border-bottom:1px solid var(--hair); padding:15px 16px; text-align:left; }
 .trow:last-child { border-bottom:0; }
@@ -111,7 +111,7 @@ input, select { font: inherit; }
 .sheetfoot { margin-top:16px; display:flex; flex-direction:column; gap:9px; }
 .ghostbtn { width:100%; padding:15px; border-radius:14px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:17px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:9px; }
 .ghostbtn.winey { color:var(--wine); border-color:color-mix(in srgb, var(--wine) 45%, transparent); background:transparent; }
-.tinyfoot { text-align:center; font-size:13px; color:var(--faint); margin-top:16px; }
+.tinyfoot { text-align:center; font-size:14px; color:var(--faint); margin-top:16px; }
 .tinyfoot span { text-decoration:underline; cursor:pointer; }
 
 /* empty day */
@@ -128,7 +128,7 @@ input, select { font: inherit; }
 
 /* month grid */
 .gridwrap { margin-top:18px; }
-.dowrow { display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:12px; font-weight:600; letter-spacing:.14em; color:var(--faint); padding-bottom:7px; border-bottom:1px solid var(--line); }
+.dowrow { display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:13px; font-weight:700; letter-spacing:.14em; color:var(--soft); padding-bottom:7px; border-bottom:1px solid var(--line); }
 .mgrid { display:grid; grid-template-columns:repeat(7,1fr); }
 .mday { position:relative; height:60px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; background:none; border:none; font-family:Marcellus,serif; font-size:20px; color:var(--ink); }
 .mday:disabled { color:var(--faint); opacity:.5; }
@@ -137,7 +137,7 @@ input, select { font: inherit; }
 .mday.none .mark { visibility:hidden; }
 .mday svg.ring { position:absolute; inset:4px 8px; pointer-events:none; }
 .mday svg.ring ellipse { fill:none; stroke:var(--wine); stroke-width:1.6; }
-.legend { text-align:center; font-size:13.5px; color:var(--faint); margin-top:12px; }
+.legend { text-align:center; font-size:14px; color:var(--faint); margin-top:12px; }
 .legend i { display:inline-block; width:4px; height:4px; border-radius:50%; background:var(--wine); margin:0 3px 1px; }
 
 /* subscreen header */
@@ -201,14 +201,14 @@ input, select { font: inherit; }
 .provcard .pref i { width:6px; height:6px; border-radius:50%; background:var(--wine); flex:none; }
 .sect { display:flex; align-items:center; gap:12px; margin:20px 2px 8px; }
 .sect::after { content:""; flex:1; height:1px; background:var(--hair); }
-.sect span { font-size:10.5px; letter-spacing:.26em; text-transform:uppercase; color:var(--faint); font-weight:700; }
+.sect span { font-size:13px; letter-spacing:.22em; text-transform:uppercase; color:var(--soft); font-weight:700; }
 .sect .x { margin-left:auto; font-size:11px; color:var(--wine); background:none; border:none; font-weight:640; letter-spacing:0; text-transform:none; }
 .addon { display:flex; align-items:baseline; gap:10px; width:100%; text-align:left; background:none; border:1px solid var(--hair); border-radius:13px; padding:12px 14px; margin-bottom:7px; font-size:15px; color:var(--ink); }
 .addon .an { font-weight:600; font-size:16px; }
 .addon .lead { flex:1; border-bottom:1px dotted var(--faint); transform:translateY(-3px); opacity:.7; min-width:14px; }
 .addon .ap { color:var(--soft); font-size:15px; white-space:nowrap; }
 .chip { display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px; }
-.chip .lbl { display:block; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); font-weight:700; }
+.chip .lbl { display:block; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--soft); font-weight:700; }
 .chip .val { display:block; font-size:16.5px; font-weight:560; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .chip .txt { flex:1; min-width:0; }
 .chip .cp { flex:none; font-size:11px; font-weight:700; color:var(--wine); }
@@ -237,7 +237,7 @@ input, select { font: inherit; }
 .bigserif { font-family:Marcellus,serif; font-size:27px; font-weight:700; line-height:1.2; margin:18px 0 6px; -webkit-text-stroke:.45px currentColor; }
 .lede { color:var(--soft); font-size:17px; margin:0 0 14px; }
 .field { margin-top:14px; }
-.field label { display:block; font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); font-weight:700; margin:0 2px 5px; }
+.field label { display:block; font-size:12.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--soft); font-weight:700; margin:0 2px 5px; }
 .field input { width:100%; font-size:18px; color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:13px; padding:13px 14px; }
 .finehint { font-size:14px; color:var(--faint); margin:9px 2px 0; line-height:1.45; }
 .setrow { display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:15px 16px; margin-bottom:9px; }
@@ -254,8 +254,8 @@ input, select { font: inherit; }
 .locrow { display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 16px; margin-bottom:9px; }
 .locrow.on { border-color:var(--wine); box-shadow:inset 0 0 0 1px var(--wine); }
 .locrow .ln { flex:1; min-width:0; }
-.locrow .ln b { display:block; font-size:17px; font-weight:640; }
-.locrow .ln span { display:block; font-size:14.5px; color:var(--soft); }
+.locrow .ln b { display:block; font-size:18px; font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.locrow .ln span { display:block; font-size:15px; color:var(--soft); margin-top:1px; }
 .locrow .mark { margin-left:auto; color:var(--wine); font-weight:700; visibility:hidden; flex:none; }
 .locrow.on .mark { visibility:visible; }
 .aboutcard { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:15px 16px; margin-bottom:10px; }

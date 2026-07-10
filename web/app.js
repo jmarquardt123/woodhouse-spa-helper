@@ -498,7 +498,9 @@
     Object.keys(byState).sort().forEach(function(st){
       h+='<div class="statehdr">'+esc(STATE_NAMES[st]||st)+'</div><div class="locgrid">';
       byState[st].forEach(function(l){
-        h+='<button class="locrow'+(l.key===S.locKey?" on":"")+'" data-loc="'+esc(l.key)+'"><span class="ln"><b>'+esc(l.city)+'</b><span>'+esc(l.label)+(l.phone?' · '+esc(l.phone):"")+'</span></span><span class="mark">✓</span></button>';
+        var nb=String(l.label||"").replace(/^Woodhouse( Day)? Spa\s*[-–—·]?\s*/i,"").trim();
+        var title=esc(l.city)+(nb&&nb.toLowerCase()!==l.city.toLowerCase()?' · '+esc(nb):'');
+        h+='<button class="locrow'+(l.key===S.locKey?" on":"")+'" data-loc="'+esc(l.key)+'"><span class="ln"><b>'+title+'</b><span>'+esc(l.phone||STATE_NAMES[l.state]||l.state)+'</span></span><span class="mark">✓</span></button>';
       });
       h+='</div>';
     });
