@@ -61,6 +61,7 @@
     freshAt:{}, checking:false,
     ym:null,               // [year, monthIndex]
     selBy:{},              // iso(ym) month key -> day number
+    sheetOpen:false,
     time:null, timeRow:null, steps:{}, terms: store("wsh-terms")===true,
     strip:false, stripInfo:null,
     returnTo:null,
@@ -240,7 +241,7 @@
     return '<div class="monthrow"><span class="m serif">'+MONS[x[1]]+'</span><span class="y serif">'+x[0]+'</span>'+monthTools(withCal)+'</div>';
   }
   function choiceHtml(){
-    return '<div class="choice"><button data-act="editfilters"><span class="cw"><span class="cl">Your visit</span><span class="cs">'+esc(sentence())+'</span></span><span class="ar">›</span></button></div>';
+    return '<div class="choice"><button data-act="opensheet"><span class="cw"><span class="cl">Your visit</span><span class="cs">'+esc(sentence())+'</span></span><span class="ar">›</span></button></div>';
   }
   function dayHead(list){
     var x=ym();
@@ -319,9 +320,9 @@
     return '<div class="pad">'+subhead(MONS[x[1]]+" "+x[0],null,monthTools(false))+monthGrid()+'<p class="legend">Tap a day to see its times</p></div>';
   };
 
-  VIEWS.filters=function(){
+  function filtersInner(){
     var f=fam();
-    var h='<div class="pad">'+subhead("What are you looking for?",null);
+    var h='<div class="sheethdr"><span class="v serif">What are you looking for?</span><button class="closex" data-act="closesheet" aria-label="Close">✕</button></div>';
     h+='<div class="q"><div class="ql">Who’s going?</div><div class="opts">'+
       '<button class="opt'+(S.who==="me"?" on":"")+'" data-set="who:me">Just me</button>'+
       '<button class="opt'+(S.who==="two"?" on":"")+'" data-set="who:two">Two of us</button></div>'+
@@ -361,9 +362,9 @@
       '<div class="range-dual"><div class="range-track"></div><div class="range-fill" id="timeFill"></div>'+
       '<input type="range" id="t1" min="480" max="1260" step="30" value="'+S.t1+'" aria-label="Earliest time">'+
       '<input type="range" id="t2" min="480" max="1260" step="30" value="'+S.t2+'" aria-label="Latest time"></div></div>';
-    h+='<div class="applywrap"><button class="cta" data-act="apply">Show these times</button></div></div>';
+    h+='<div class="applywrap"><button class="cta" data-act="apply">Show these times</button></div>';
     return h;
-  };
+  }
 
   VIEWS.card=function(){
     var f=fam(), row=S.timeRow, x=ym();
@@ -472,7 +473,11 @@
   /* ---------------- render + wire ---------------- */
   function render(){
     if(!D&&S.view!=="location"){ S.view="location"; }
-    app.innerHTML=VIEWS[S.view]();
+    var html=VIEWS[S.view]();
+    if(S.sheetOpen&&D){
+      html+='<div class="sheetwrap"><div class="backdrop" data-act="closesheet"></div><div class="sheet" role="dialog" aria-label="What are you looking for?"><div class="grab"></div>'+filtersInner()+'</div></div>';
+    }
+    app.innerHTML=html;
     if(S.strip&&S.view==="home"&&S.stripInfo){
       var si=S.stripInfo;
       app.insertAdjacentHTML("beforeend",
@@ -543,8 +548,9 @@
       if(a==="monthview") go("month");
       if(a==="prevm"){ ymShift(-1); render(); }
       if(a==="nextm"){ ymShift(1); render(); }
-      if(a==="editfilters"){ S.returnTo="home"; go("filters"); }
-      if(a==="apply"){ var back=S.returnTo||"home"; S.returnTo=null; go(back); toast("Showing "+sentence()); }
+      if(a==="opensheet"){ S.sheetOpen=true; render(); }
+      if(a==="closesheet"){ S.sheetOpen=false; saveFilters(); render(); }
+      if(a==="apply"){ S.sheetOpen=false; saveFilters(); render(); toast("Showing "+sentence()); }
       if(a==="savepf"){
         S.profile={ name:(val("pfName")||"").slice(0,80), email:(val("pfEmail")||"").slice(0,120) };
         store("wsh-profile",S.profile); toast("Saved on this device"); go(S.time!=null?"card":"settings");
@@ -657,8 +663,8 @@
     app.innerHTML='<div class="boot"><div class="boot-pip"></div><p>Loading open times…</p></div>';
     fetchJson("/data/locations/"+encodeURIComponent(key)+".json").then(function(data){
       D=data; buildFams(); ensureSelection();
-      if(!store("wsh-filters")){ S.returnTo="home"; go("filters"); }
-      else go("home");
+      if(!store("wsh-filters")) S.sheetOpen=true;
+      go("home");
       fetchJson("/data/locations/"+encodeURIComponent(key)+"-near.json")
         .then(function(near){ overlayNear(near); if(S.view==="home") render(); })
         .catch(function(){ /* near file not built yet — deep data stands */ });
