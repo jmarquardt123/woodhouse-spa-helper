@@ -136,7 +136,6 @@ function page({ title, desc, canonical, cityState, loc, bodyMain, faqSchema, loc
 ${localSchema}${faqSchema}
 <style>
 :root{--bg:#F6F2E9;--card:#FCFAF4;--ink:#2A2118;--soft:#75685A;--line:#E3DAC8;--wine:#722F44;--onwine:#fff;--live:#47795D}
-@media (prefers-color-scheme:dark){:root{--bg:#191411;--card:#221C17;--ink:#EFE6D8;--soft:#A79987;--line:#372E26;--wine:#D08FA1;--onwine:#241318;--live:#8FC8A5}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,'Times New Roman',serif;line-height:1.6;font-size:18px}
 .wrap{max-width:760px;margin:0 auto;padding:26px 20px 70px}
 header a{color:inherit;text-decoration:none}

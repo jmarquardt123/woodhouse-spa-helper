@@ -12,13 +12,6 @@
   --line:#E3DAC8; --hair:#EAE2D2; --wine:#722F44; --winesoft:#9D6A79; --tint:#F0E2E6;
   --live:#47795D; --livebg:#E4EFE7; --amber:#9C6B22; --amberbg:#F3E7D2; --onwine:#FFF;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]), :root:not([data-theme="light"]) .app {
-    --bg:#191411; --card:#221C17; --ink:#EFE6D8; --soft:#A79987; --faint:#776A5A;
-    --line:#372E26; --hair:#2C251F; --wine:#D08FA1; --winesoft:#96707D; --tint:#33222A;
-    --live:#8FC8A5; --livebg:#20332A; --amber:#D9AA61; --amberbg:#33280F; --onwine:#241318;
-  }
-}
 :root[data-theme="dark"], :root[data-theme="dark"] .app {
   --bg:#191411; --card:#221C17; --ink:#EFE6D8; --soft:#A79987; --faint:#776A5A;
   --line:#372E26; --hair:#2C251F; --wine:#D08FA1; --winesoft:#96707D; --tint:#33222A;

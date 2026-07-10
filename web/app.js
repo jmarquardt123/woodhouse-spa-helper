@@ -518,9 +518,9 @@
       '<button class="setrow" data-go="details"><span class="si">'+icon("pencil",16)+'</span><span class="sl"><b>Your details</b><span>'+esc(S.profile.name||"Not set · stays on this device")+'</span></span><span class="ch">›</span></button>'+
       ((EMAIL_READY||(store("wsh-watchids")||[]).length)?'<button class="setrow" data-act="myalerts"><span class="si">'+icon("info",16)+'</span><span class="sl"><b>My alerts</b><span>Email watches set on this device</span></span><span class="ch">›</span></button>':"")+
       '<div class="statehdr">Appearance</div><div class="seg3" id="themeSeg">'+
-        ["light","auto","dark"].map(function(t){
-          var cur; try{ cur=localStorage.getItem("wsh-theme")||"auto"; }catch(e){ cur="auto"; }
-          return '<button data-thm="'+t+'"'+(cur===t?' class="on"':"")+'>'+titleCase(t==="auto"?"Automatic":t)+'</button>';
+        ["light","dark"].map(function(t){
+          var cur; try{ cur=localStorage.getItem("wsh-theme")||"light"; }catch(e){ cur="light"; }
+          return '<button data-thm="'+t+'"'+(cur===t?' class="on"':"")+'>'+titleCase(t)+'</button>';
         }).join("")+'</div>'+
       '<div class="statehdr">The data</div>'+
       '<button class="setrow" data-go="about"><span class="si">'+icon("info",16)+'</span><span class="sl"><b>About this site</b><span>How it works · privacy</span></span><span class="ch">›</span></button></div>';
@@ -724,8 +724,9 @@
       seg.querySelectorAll("button").forEach(function(x){x.classList.remove("on");}); b.classList.add("on");
       var t=b.getAttribute("data-thm");
       try{
-        if(t==="auto"){ localStorage.removeItem("wsh-theme"); delete document.documentElement.dataset.theme; }
-        else { localStorage.setItem("wsh-theme",t); document.documentElement.dataset.theme=t; }
+        localStorage.setItem("wsh-theme",t);
+        if(t==="dark") document.documentElement.dataset.theme="dark";
+        else delete document.documentElement.dataset.theme;
       }catch(e){}
     }); });
     // mouse users can drag the date row
