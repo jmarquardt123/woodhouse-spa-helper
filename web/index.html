@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#722F44" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#191411" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="Open appointment times at Woodhouse spas. Pick a time and finish booking on Woodhouse's own site.">
+  <title>Woodhouse Spa Helper</title>
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("wsh-theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <div id="app">
+    <div class="boot"><div class="boot-pip"></div><p>Loading open times…</p></div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
