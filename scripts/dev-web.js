@@ -45,4 +45,4 @@ http.createServer((req, res) => {
   }
   res.writeHead(200, { "content-type": types[path.extname(file)] || "application/octet-stream", "cache-control": "no-store" });
   fs.createReadStream(file).pipe(res);
-}).listen(PORT, "127.0.0.1", () => console.log(`Woodhouse Spa Helper dev: http://127.0.0.1:${PORT}`));
+}).listen(PORT, "127.0.0.1", () => console.log(`Woodhouse Spa Openings dev: http://127.0.0.1:${PORT}`));

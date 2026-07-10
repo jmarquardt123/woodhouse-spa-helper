@@ -1,7 +1,7 @@
 {
-  "name": "Woodhouse Spa Helper",
-  "short_name": "Spa Helper",
-  "description": "Open appointment times at Woodhouse spas. Booking happens on Woodhouse's own site.",
+  "name": "Woodhouse Spa Openings",
+  "short_name": "Openings",
+  "description": "Open appointment times at every Woodhouse spa. Booking happens on Woodhouse's own site.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#191411",

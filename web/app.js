@@ -1,4 +1,4 @@
-/* Woodhouse Spa Helper — viewer + handoff. Never books anything.
+/* Woodhouse Spa Openings — viewer + handoff. Never books anything.
    Data: /data/index.json + /data/locations/<key>.json (Vercel Blob). */
 
 (function () {
@@ -229,7 +229,7 @@
     return '<div class="subhead">'+(noBack?'':'<button class="back" data-go="home" aria-label="Back">‹<span class="backlbl">Back</span></button>')+'<span class="t"><span class="v">'+esc(title)+'</span>'+(sub?'<span class="s">'+esc(sub)+'</span>':'')+'</span><span class="right">'+(extra||"")+'</span></div>';
   }
   function brandHtml(){
-    return '<div class="brandrow"><span class="wm"><span class="house">WOODHOUSE SPA</span><span class="helper">Helper</span></span><button class="gear" data-go="settings" aria-label="Settings">'+icon("sliders",17)+'</button></div>'+
+    return '<div class="brandrow"><span class="wm"><span class="house">WOODHOUSE SPA</span><span class="helper">Openings</span></span><button class="gear" data-go="settings" aria-label="Settings">'+icon("sliders",17)+'</button></div>'+
       '<div class="locline"><button data-go="location">'+pin()+' <b>'+esc(D.city)+'</b>&nbsp;· '+esc(D.state)+' · Change</button></div>';
   }
   function monthTools(withCal){
@@ -291,7 +291,7 @@
     });
     return h;
   }
-  function footerHtml(){ return '<div class="tinyfoot"><span data-go="about">About this helper</span></div>'; }
+  function footerHtml(){ return '<div class="tinyfoot"><span data-go="about">About this site</span></div>'; }
 
   /* ---------------- views ---------------- */
   var VIEWS={};
@@ -326,7 +326,8 @@
 
   function filtersInner(){
     var f=fam();
-    var h='<div class="sheethdr"><span class="v serif">What are you looking for?</span><button class="closex" data-act="closesheet" aria-label="Close">✕</button></div>';
+    var h='<div class="sheethdr"><span class="v serif">Plan your visit</span><button class="closex" data-act="closesheet" aria-label="Close">✕</button></div>'+
+      '<p class="sheetsub">A few quick questions. Then the calendar shows every open time that matches.</p>';
     h+='<div class="q"><div class="ql">Who’s going?</div><div class="opts">'+
       '<button class="opt'+(S.who==="me"?" on":"")+'" data-set="who:me">Just me</button>'+
       '<button class="opt'+(S.who==="two"?" on":"")+'" data-set="who:two">Two of us</button></div>'+
@@ -419,7 +420,7 @@
     steps.forEach(function(s,i){
       h+='<div class="step'+(S.steps[i]?" done":"")+'" data-step="'+i+'"><span class="n">'+(i+1)+'</span><span class="st"><b>'+esc(s[0])+'</b>'+(s[1]?'<span class="sub">'+esc(s[1])+'</span>':"")+'</span></div>';
     });
-    h+='<div class="terms"><input type="checkbox" id="agree"'+(S.terms?" checked":"")+'><label for="agree">I’ll confirm the booking on Woodhouse’s own site. This helper can’t hold a spot.</label></div>';
+    h+='<div class="terms"><input type="checkbox" id="agree"'+(S.terms?" checked":"")+'><label for="agree">I’ll confirm the booking on Woodhouse’s own site. This site can’t hold a spot.</label></div>';
     h+='<button class="cta" id="openWh"'+(S.terms?"":" disabled")+'>Open Woodhouse booking →</button>';
     if(D.phone) h+='<a class="ghostbtn" style="margin-top:9px;text-decoration:none" href="tel:'+esc(D.phone.replace(/\D/g,""))+'">'+icon("phone",15)+'Or call the spa · '+esc(D.phone)+'</a>';
     h+='<div style="height:8px"></div></div>';
@@ -476,7 +477,7 @@
           return '<button data-thm="'+t+'"'+(cur===t?' class="on"':"")+'>'+titleCase(t==="auto"?"Automatic":t)+'</button>';
         }).join("")+'</div>'+
       '<div class="statehdr">The data</div>'+
-      '<button class="setrow" data-go="about"><span class="si">'+icon("info",16)+'</span><span class="sl"><b>About this helper</b><span>How it works · privacy</span></span><span class="ch">›</span></button></div>';
+      '<button class="setrow" data-go="about"><span class="si">'+icon("info",16)+'</span><span class="sl"><b>About this site</b><span>How it works · privacy</span></span><span class="ch">›</span></button></div>';
   };
 
   var STATE_NAMES={AL:"Alabama",AR:"Arkansas",CA:"California",CO:"Colorado",FL:"Florida",GA:"Georgia",IN:"Indiana",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",MD:"Maryland",MI:"Michigan",MN:"Minnesota",MO:"Missouri",NC:"North Carolina",NJ:"New Jersey",NY:"New York",OH:"Ohio",PA:"Pennsylvania",SC:"South Carolina",TN:"Tennessee",TX:"Texas",UT:"Utah",VA:"Virginia",WI:"Wisconsin"};
@@ -487,7 +488,7 @@
     });
     var h='<div class="pad locpad">'+
       (D?subhead("Which Woodhouse do you go to?",null)
-        :'<div class="brandrow" style="justify-content:center;text-align:center"><span class="wm"><span class="house">WOODHOUSE SPA</span><span class="helper">Helper</span></span></div>'+
+        :'<div class="brandrow" style="justify-content:center;text-align:center"><span class="wm"><span class="house">WOODHOUSE SPA</span><span class="helper">Openings</span></span></div>'+
          '<p class="bigserif" style="text-align:center;margin-top:22px">Which Woodhouse do you go to?</p>'+
          '<p class="lede" style="text-align:center">Real open appointment times, updated all day.</p>')+
       '<div class="search"><input placeholder="Search city or state" id="locSearch" value="'+esc(S.locSearch||"")+'"></div><div style="height:14px"></div>';
@@ -506,7 +507,7 @@
   };
 
   VIEWS.about=function(){
-    return '<div class="pad">'+subhead("About this helper",null)+
+    return '<div class="pad">'+subhead("About Woodhouse Spa Openings",null)+
       '<div style="height:14px"></div>'+
       '<div class="aboutcard"><h3>How it works</h3><p>We check Woodhouse’s booking system for open times, all day, every day. Pick a time and we send you to Woodhouse’s site to book it. Booking always happens there, never here.</p></div>'+
       '<div class="aboutcard"><h3>Privacy</h3><p>Nothing about you is stored on our side. The name and email under Your details never leave this device.</p></div>'+
@@ -520,7 +521,7 @@
     if(!D&&S.view!=="location"){ S.view="location"; }
     var html=VIEWS[S.view]();
     if(S.sheetOpen&&D){
-      html+='<div class="sheetwrap"><div class="backdrop" data-act="closesheet"></div><div class="sheet" role="dialog" aria-label="What are you looking for?"><div class="grab"></div>'+filtersInner()+'</div></div>';
+      html+='<div class="sheetwrap"><div class="backdrop" data-act="closesheet"></div><div class="sheet" role="dialog" aria-label="Plan your visit"><div class="grab"></div>'+filtersInner()+'</div></div>';
     }
     app.innerHTML=html;
     if(S.strip&&S.view==="home"&&S.stripInfo){
