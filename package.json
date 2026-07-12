@@ -4,6 +4,7 @@
   "private": true,
   "description": "Free helper that shows open appointment times at Woodhouse spas. Read-only: it never books anything.",
   "scripts": {
+    "test": "node test/blob-ops.test.js",
     "locations": "node scripts/enumerate-locations.js",
     "pull": "node scripts/pull-location.js",
     "upload": "node scripts/upload-blob.js",

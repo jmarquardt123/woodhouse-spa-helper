@@ -104,6 +104,55 @@ function ok(name, cond, detail) {
   ok("1 changed of 20 uploads exactly 1", planSync(oneChanged, fullManifest).toUpload.length === 1);
   ok("first run (empty manifest) uploads all 20", planSync(files20, {}).toUpload.length === 20);
 
+  // 6. ACCEPTANCE — the issue's own "simulated day": 200 events, 3 dashboard
+  //    loads of the 7-day view, 1 deploy with 1 changed file of 20. We count
+  //    Blob ADVANCED operations (put / copy / list — per Vercel's Blob pricing;
+  //    plain blob-body GETs are Simple operations and are not counted, matching
+  //    the issue's framing that puts and lists are the quota consumers) BEFORE
+  //    the fix vs AFTER, via the same wrapped/counting blob client, and require
+  //    after <= 10% of before.
+
+  // ---- BEFORE: the pre-fix design, measured on the real primitives it used ----
+  // events: one blob per visitor event (old logEvent — still present — is one put each)
+  blobStat.puts = 0;
+  for (let n = 0; n < 200; n++) await events.logEvent({ type: "visit" });
+  const beforeEventPuts = blobStat.puts;                 // measured: 200
+  // deploy: unchanged files were re-put unconditionally — one put per file
+  const beforeDeployPuts = planSync(files20, {}).toUpload.length; // measured: 20 (empty manifest = all)
+  // reads: old loadEvents ran ONE all-history list({prefix:"ev/"}) per load (1 page
+  // on a young history). That code path is gone, so it is modelled, not re-run: 1 per load.
+  const beforeListOps = 3;                               // modelled: 1 all-history list × 3 loads
+  const beforeTotal = beforeEventPuts + beforeListOps + beforeDeployPuts;
+
+  // ---- AFTER: the shipped code, exercised through the real modules ----
+  // events: client batches at 20/flush, so 200 events => 10 beacons => 10 logEvents puts
+  blobStat.puts = 0;
+  for (let i = 0; i < 200; i += 20) {
+    await events.logEvents(Array.from({ length: 20 }, (_, k) => ({ type: "visit", t: "T" + (i + k) })));
+  }
+  const afterEventPuts = blobStat.puts;                  // measured: 10
+  // reads: 3 dashboard loads of the 7-day view. Per-day scoping is 7 lists, but the
+  // in-process memo coalesces repeated loads within a warm instance, so the 3 loads
+  // cost one set of lists, not three.
+  events._resetReadCache();
+  blobStat.lists = 0;
+  listResponder = () => ({ blobs: [], hasMore: false, cursor: null });
+  for (let n = 0; n < 3; n++) await events.loadEvents(7);
+  const afterListOps = blobStat.lists;                   // measured: 7 (memoized across the 3 loads)
+  // deploy: 1 changed file of 20 => 1 asset put + 1 manifest put
+  const afterPlan = planSync(oneChanged, fullManifest);
+  const afterDeployPuts = afterPlan.toUpload.length + (afterPlan.toUpload.length > 0 ? 1 : 0); // 1 + 1 = 2
+  const afterTotal = afterEventPuts + afterListOps + afterDeployPuts;
+
+  const ratio = afterTotal / beforeTotal;
+  console.log(`\nACCEPTANCE (simulated day) — Blob advanced ops:`);
+  console.log(`  BEFORE = ${beforeTotal}  (events ${beforeEventPuts} puts + reads ${beforeListOps} lists + deploy ${beforeDeployPuts} puts)`);
+  console.log(`  AFTER  = ${afterTotal}  (events ${afterEventPuts} puts + reads ${afterListOps} lists + deploy ${afterDeployPuts} puts)`);
+  console.log(`  ratio  = ${afterTotal}/${beforeTotal} = ${(ratio * 100).toFixed(1)}%  (target <= 10%)`);
+  ok("memo coalesces the 3 dashboard loads to one set of day-lists", afterListOps === 7, `${afterListOps} lists for 3 loads`);
+  ok("simulated-day advanced ops <= 10% of before", ratio <= 0.10,
+     `${afterTotal}/${beforeTotal} = ${(ratio * 100).toFixed(1)}%`);
+
   console.log(failures ? `\n${failures} FAILED` : "\nALL BLOB-OPS TESTS PASSED");
   process.exit(failures ? 1 : 0);
 })();

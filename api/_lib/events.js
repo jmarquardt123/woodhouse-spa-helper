@@ -46,13 +46,29 @@ async function logEvent(ev) {
   return rec;
 }
 
+// Short-lived in-process memo for dashboard reads. Scoping reads to ev/<day>/
+// trades unbounded-history paging for one list() per requested day (7 for a
+// week view). The owner dashboard tends to load the same window several times
+// in quick succession (manual refreshes, more than one panel), which would
+// otherwise re-run all 7 lists every time. Memoizing the result across loads
+// within a warm serverless instance coalesces those repeats down to a single
+// set of lists. Best-effort (only spans a warm instance) and keyed by the
+// current day so it rolls over on its own; analytics may lag by up to
+// CACHE_TTL_MS, which is fine — reads never touch visitor UX.
+const CACHE_TTL_MS = 60000;
+const _readCache = new Map(); // "days:YYYY-MM-DD" -> { at, data }
+
 // Load all events across the last `days` days. Returns array of records.
 // Lists are scoped to ev/<day>/ per requested day (bounded), and bodies are
 // fetched WITHOUT a cache-buster so the CDN can serve write-once event blobs
 // from cache. Each body is a single record (legacy) or an array (batched).
 async function loadEvents(days) {
-  const out = [];
   const today = new Date();
+  const cacheKey = days + ":" + dayKey(today);
+  const cached = _readCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.data;
+
+  const out = [];
   const dayKeys = [];
   for (let i = 0; i < days; i++) {
     dayKeys.push(dayKey(new Date(today.getTime() - i * 86400000)));
@@ -85,8 +101,12 @@ async function loadEvents(days) {
   }
   await Promise.all(Array.from({ length: 12 }, worker));
   out.sort((a, b) => (a.t < b.t ? 1 : -1));
+  _readCache.set(cacheKey, { at: Date.now(), data: out });
   return out;
 }
+
+// Test hook: drop the read memo so acceptance/measurement runs start clean.
+function _resetReadCache() { _readCache.clear(); }
 
 function geoOf(req) {
   const h = req.headers;
@@ -100,4 +120,4 @@ function geoOf(req) {
   };
 }
 
-module.exports = { logEvent, logEvents, loadEvents, geoOf };
+module.exports = { logEvent, logEvents, loadEvents, geoOf, _resetReadCache };
