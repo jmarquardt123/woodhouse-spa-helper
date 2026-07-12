@@ -9,15 +9,34 @@
 
   // ---- first-party analytics beacon (never blocks UX) ----
   var SID = (function(){ try{ var v=sessionStorage.getItem("wsh-sid"); if(!v){ v=Date.now().toString(36)+Math.random().toString(36).slice(2,8); sessionStorage.setItem("wsh-sid",v); } return v; }catch(e){ return ""; } })();
-  var _evOnce={};
-  function track(type,key,meta,once){
+  var _evOnce={}, _evQ=[], _evTimer=null;
+  function _evSend(batch){
     try{
-      if(once){ if(_evOnce[type+(key||"")]) return; _evOnce[type+(key||"")]=1; }
-      var body=JSON.stringify({type:type,key:key||"",meta:meta||{},sid:SID,path:location.pathname+location.search});
+      var body=JSON.stringify({events:batch});
       if(navigator.sendBeacon){ navigator.sendBeacon("/api/ev", new Blob([body],{type:"application/json"})); }
       else fetch("/api/ev",{method:"POST",headers:{"content-type":"application/json"},body:body,keepalive:true});
     }catch(e){}
   }
+  function _evFlush(){
+    if(_evTimer){ clearTimeout(_evTimer); _evTimer=null; }
+    if(!_evQ.length) return;
+    var batch=_evQ; _evQ=[];
+    _evSend(batch);
+  }
+  // Queue events and flush as ONE beacon (per ~20s, on a 20-event burst, or on
+  // the way out) instead of one request per event — cuts Blob writes ~10-30x.
+  function track(type,key,meta,once){
+    try{
+      if(once){ if(_evOnce[type+(key||"")]) return; _evOnce[type+(key||"")]=1; }
+      _evQ.push({type:type,key:key||"",meta:meta||{},sid:SID,path:location.pathname+location.search,t:new Date().toISOString()});
+      if(_evQ.length>=20){ _evFlush(); }
+      else if(!_evTimer){ _evTimer=setTimeout(_evFlush,20000); }
+    }catch(e){}
+  }
+  try{
+    addEventListener("pagehide",_evFlush);
+    addEventListener("visibilitychange",function(){ if(document.visibilityState==="hidden") _evFlush(); });
+  }catch(e){}
   track("visit");
   var IDX = null;  // location index
   var EMAIL_READY = false;
